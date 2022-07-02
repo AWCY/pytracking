@@ -9,8 +9,7 @@ def shift_features(feat, relative_translation_vector):
 
     grid = F.affine_grid(T_mat, feat.shape)
 
-    feat_out = F.grid_sample(feat, grid)
-    return feat_out
+    return F.grid_sample(feat, grid)
 
 
 class CenterShiftFeatures(nn.Module):
@@ -28,8 +27,7 @@ class CenterShiftFeatures(nn.Module):
 
         t = torch.cat((t_x.view(-1, 1), t_y.view(-1, 1)), dim=1)
 
-        feat_out = shift_features(feat, t)
-        return feat_out
+        return shift_features(feat, t)
 
 
 class DiMPScoreJittering():

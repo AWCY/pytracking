@@ -15,7 +15,7 @@ class NerfPositionalEncoding(nn.Module):
             self.bases = [2**i for i in range(depth)]
         print(f'using {sine_type} as positional encoding')
 
-        if avoid_aliasing and max_spatial_resolution == None:
+        if avoid_aliasing and max_spatial_resolution is None:
             raise ValueError('Please specify the maxima spatial resolution (h, w) of the feature map')
         elif avoid_aliasing:
             self.factor = max_spatial_resolution/depth

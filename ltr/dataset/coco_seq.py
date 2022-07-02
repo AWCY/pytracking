@@ -46,8 +46,11 @@ class MSCOCOSeq(BaseVideoDataset):
         root = env_settings().coco_dir if root is None else root
         super().__init__('COCO', root, image_loader)
 
-        self.img_pth = os.path.join(root, 'images/{}{}/'.format(split, version))
-        self.anno_path = os.path.join(root, 'annotations/instances_{}{}.json'.format(split, version))
+        self.img_pth = os.path.join(root, f'images/{split}{version}/')
+        self.anno_path = os.path.join(
+            root, f'annotations/instances_{split}{version}.json'
+        )
+
 
         # Load the COCO set.
         self.coco_set = COCO(self.anno_path)
@@ -64,9 +67,7 @@ class MSCOCOSeq(BaseVideoDataset):
 
     def _get_sequence_list(self):
         ann_list = list(self.coco_set.anns.keys())
-        seq_list = [a for a in ann_list if self.coco_set.anns[a]['iscrowd'] == 0]
-
-        return seq_list
+        return [a for a in ann_list if self.coco_set.anns[a]['iscrowd'] == 0]
 
     def is_video_sequence(self):
         return False
@@ -81,10 +82,7 @@ class MSCOCOSeq(BaseVideoDataset):
         return True
 
     def get_class_list(self):
-        class_list = []
-        for cat_id in self.cats.keys():
-            class_list.append(self.cats[cat_id]['name'])
-        return class_list
+        return [self.cats[cat_id]['name'] for cat_id in self.cats.keys()]
 
     def has_segmentation_info(self):
         return True
@@ -119,14 +117,11 @@ class MSCOCOSeq(BaseVideoDataset):
         return {'bbox': bbox, 'mask': mask, 'valid': valid, 'visible': visible}
 
     def _get_anno(self, seq_id):
-        anno = self.coco_set.anns[self.sequence_list[seq_id]]
-
-        return anno
+        return self.coco_set.anns[self.sequence_list[seq_id]]
 
     def _get_frames(self, seq_id):
         path = self.coco_set.loadImgs([self.coco_set.anns[self.sequence_list[seq_id]]['image_id']])[0]['file_name']
-        img = self.image_loader(os.path.join(self.img_pth, path))
-        return img
+        return self.image_loader(os.path.join(self.img_pth, path))
 
     def get_meta_info(self, seq_id):
         try:
@@ -159,9 +154,9 @@ class MSCOCOSeq(BaseVideoDataset):
         if anno is None:
             anno = self.get_sequence_info(seq_id)
 
-        anno_frames = {}
-        for key, value in anno.items():
-            anno_frames[key] = [value[0, ...] for _ in frame_ids]
+        anno_frames = {
+            key: [value[0, ...] for _ in frame_ids] for key, value in anno.items()
+        }
 
         object_meta = self.get_meta_info(seq_id)
 

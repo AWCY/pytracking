@@ -77,10 +77,7 @@ class LVIS(BaseImageDataset):
         return True
 
     def get_class_list(self):
-        class_list = []
-        for cat_id in self.cats.keys():
-            class_list.append(self.cats[cat_id]['name'])
-        return class_list
+        return [self.cats[cat_id]['name'] for cat_id in self.cats.keys()]
 
     def has_segmentation_info(self):
         return True
@@ -112,14 +109,11 @@ class LVIS(BaseImageDataset):
         return {'bbox': bbox, 'mask': mask, 'valid': valid, 'visible': visible}
 
     def _get_anno(self, im_id):
-        anno = self.lvis_set.anns[self.image_list[im_id]]
-
-        return anno
+        return self.lvis_set.anns[self.image_list[im_id]]
 
     def _get_image(self, im_id):
         path = self.lvis_set.load_imgs([self.lvis_set.anns[self.image_list[im_id]]['image_id']])[0]['file_name']
-        img = self.image_loader(os.path.join(self.img_pth, path))
-        return img
+        return self.image_loader(os.path.join(self.img_pth, path))
 
     def get_meta_info(self, im_id):
         try:

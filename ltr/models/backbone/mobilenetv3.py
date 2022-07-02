@@ -87,11 +87,7 @@ class MobileBlock(nn.Module):
 
         self.use_connect = stride == 1 and in_channels == out_channels
 
-        if self.nonLinear == "RE":
-            activation = nn.ReLU
-        else:
-            activation = h_swish
-
+        activation = nn.ReLU if self.nonLinear == "RE" else h_swish
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, exp_size, kernel_size=1, stride=1, padding=0, bias=False),
             nn.BatchNorm2d(exp_size),
@@ -124,10 +120,7 @@ class MobileBlock(nn.Module):
         out = self.point_conv(out)
 
         # connection
-        if self.use_connect:
-            return x + out
-        else:
-            return out
+        return x + out if self.use_connect else out
 
 
 class MobileNetV3(nn.Module):
@@ -307,8 +300,8 @@ def mobilenet3(output_layers=None, path=None):
     else:
         for l in output_layers:
             if l not in ['init_conv','layer1', 'layer2', 'layer3', 'layer4', 'layer5','layer6','layer_out']:
-                raise ValueError('Unknown layer: {}'.format(l))
-    
+                raise ValueError(f'Unknown layer: {l}')
+
     model = MobileNetV3(model_mode="LARGE", num_classes=100, multiplier=1.0,output_layers=output_layers,dropout_rate = 0.8)
     if path is not None:
         print(path)

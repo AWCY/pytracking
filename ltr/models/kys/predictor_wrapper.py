@@ -69,15 +69,18 @@ class PredictorWrapper(nn.Module):
 
             pred_response = shift_features(pred_response.view(-1, 1, *dimp_score_cur.shape[-2:]), shift_value).view(score_shape)
 
-        output = {'response': pred_response, 'state_cur': state_new, 'auxiliary_outputs': auxiliary_outputs}
-        return output
+        return {
+            'response': pred_response,
+            'state_cur': state_new,
+            'auxiliary_outputs': auxiliary_outputs,
+        }
 
     def compute_cost_volume(self, feat_prev, feat_cur, use_current_frame_as_ref):
-        if use_current_frame_as_ref:
-            cost_volume = self.cost_volume(feat_cur, feat_prev)
-        else:
-            cost_volume = self.cost_volume(feat_prev, feat_cur)
-        return cost_volume
+        return (
+            self.cost_volume(feat_cur, feat_prev)
+            if use_current_frame_as_ref
+            else self.cost_volume(feat_prev, feat_cur)
+        )
 
     def extract_motion_feat(self, backbone_feat):
         backbone_feat = backbone_feat.view(-1, backbone_feat.shape[-3], backbone_feat.shape[-2],
@@ -147,7 +150,9 @@ class PredictorWrapper(nn.Module):
             pred_response = shift_features(pred_response.view(-1, 1, *dimp_score_cur.shape[-2:]), shift_value).view(
                 score_shape)
 
-        output = {'response': pred_response, 'state_cur': state_new, 'auxiliary_outputs': auxiliary_outputs,
-                  'cost_volume': cost_volume}
-
-        return output
+        return {
+            'response': pred_response,
+            'state_cur': state_new,
+            'auxiliary_outputs': auxiliary_outputs,
+            'cost_volume': cost_volume,
+        }

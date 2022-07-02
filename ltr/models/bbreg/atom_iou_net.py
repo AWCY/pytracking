@@ -131,9 +131,9 @@ class AtomIoUNet(nn.Module):
 
         fc34_rt_cat = torch.cat((fc3_rt, fc4_rt), dim=1)
 
-        iou_pred = self.iou_predictor(fc34_rt_cat).reshape(batch_size, num_proposals_per_batch)
-
-        return iou_pred
+        return self.iou_predictor(fc34_rt_cat).reshape(
+            batch_size, num_proposals_per_batch
+        )
 
     def get_modulation(self, feat, bb):
         """Get modulation vectors for the targets.

@@ -26,14 +26,17 @@ def run_training(train_module, train_name, cudnn_benchmark=True):
 
     torch.backends.cudnn.benchmark = cudnn_benchmark
 
-    print('Training:  {}  {}'.format(train_module, train_name))
+    print(f'Training:  {train_module}  {train_name}')
 
     settings = ws_settings.Settings()
     settings.module_name = train_module
     settings.script_name = train_name
-    settings.project_path = 'ltr/{}/{}'.format(train_module, train_name)
+    settings.project_path = f'ltr/{train_module}/{train_name}'
 
-    expr_module = importlib.import_module('ltr.train_settings.{}.{}'.format(train_module, train_name))
+    expr_module = importlib.import_module(
+        f'ltr.train_settings.{train_module}.{train_name}'
+    )
+
     expr_func = getattr(expr_module, 'run')
 
     expr_func(settings)

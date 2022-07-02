@@ -59,7 +59,7 @@ class Got10k(BaseVideoDataset):
                 raise ValueError('Unknown split name.')
             seq_ids = pandas.read_csv(file_path, header=None, squeeze=True, dtype=np.int64).values.tolist()
         elif seq_ids is None:
-            seq_ids = list(range(0, len(self.sequence_list)))
+            seq_ids = list(range(len(self.sequence_list)))
 
         self.sequence_list = [self.sequence_list[i] for i in seq_ids]
 
@@ -69,8 +69,7 @@ class Got10k(BaseVideoDataset):
         self.sequence_meta_info = self._load_meta_info()
         self.seq_per_class = self._build_seq_per_class()
 
-        self.class_list = list(self.seq_per_class.keys())
-        self.class_list.sort()
+        self.class_list = sorted(self.seq_per_class.keys())
 
     def get_name(self):
         return 'got10k'
@@ -82,8 +81,10 @@ class Got10k(BaseVideoDataset):
         return True
 
     def _load_meta_info(self):
-        sequence_meta_info = {s: self._read_meta(os.path.join(self.root, s)) for s in self.sequence_list}
-        return sequence_meta_info
+        return {
+            s: self._read_meta(os.path.join(self.root, s))
+            for s in self.sequence_list
+        }
 
     def _read_meta(self, seq_path):
         try:
@@ -176,8 +177,9 @@ class Got10k(BaseVideoDataset):
         if anno is None:
             anno = self.get_sequence_info(seq_id)
 
-        anno_frames = {}
-        for key, value in anno.items():
-            anno_frames[key] = [value[f_id, ...].clone() for f_id in frame_ids]
+        anno_frames = {
+            key: [value[f_id, ...].clone() for f_id in frame_ids]
+            for key, value in anno.items()
+        }
 
         return frame_list, anno_frames, obj_meta

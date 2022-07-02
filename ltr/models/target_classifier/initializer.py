@@ -65,15 +65,19 @@ class FilterInitializer(nn.Module):
         self.filter_norm = filter_norm
 
         # Make pre conv
-        pre_conv_layers = []
-        for i in range(num_filter_pre_convs):
-            pre_conv_layers.append(conv_block(feature_dim, feature_dim, kernel_size=3, padding=1))
+        pre_conv_layers = [
+            conv_block(feature_dim, feature_dim, kernel_size=3, padding=1)
+            for _ in range(num_filter_pre_convs)
+        ]
+
         self.filter_pre_layers = nn.Sequential(*pre_conv_layers) if pre_conv_layers else None
 
         # Make post conv
-        post_conv_layers = []
-        for i in range(num_filter_post_convs):
-            post_conv_layers.append(conv_block(feature_dim, feature_dim, kernel_size=1, padding=0))
+        post_conv_layers = [
+            conv_block(feature_dim, feature_dim, kernel_size=1, padding=0)
+            for _ in range(num_filter_post_convs)
+        ]
+
         post_conv_layers.append(nn.Conv2d(feature_dim, feature_dim, kernel_size=1, padding=0))
         self.filter_post_layers = nn.Sequential(*post_conv_layers)
 

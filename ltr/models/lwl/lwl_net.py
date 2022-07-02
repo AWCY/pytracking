@@ -203,7 +203,11 @@ def steepest_descent_resnet50(filter_size=1, num_filters=1, optim_iter=3, optim_
 
     decoder = lwtl_decoder.LWTLDecoder(num_filters, decoder_mdim, decoder_input_layers_channels, use_bn=True)
 
-    net = LWTLNet(feature_extractor=backbone_net, target_model=target_model, decoder=decoder,
-                  label_encoder=label_encoder,
-                  target_model_input_layer=target_model_input_layer, decoder_input_layers=decoder_input_layers)
-    return net
+    return LWTLNet(
+        feature_extractor=backbone_net,
+        target_model=target_model,
+        decoder=decoder,
+        label_encoder=label_encoder,
+        target_model_input_layer=target_model_input_layer,
+        decoder_input_layers=decoder_input_layers,
+    )

@@ -65,13 +65,15 @@ class ECSSD(BaseImageDataset):
         return {'bbox': bbox, 'mask': mask, 'valid': valid, 'visible': visible}
 
     def get_meta_info(self, im_id):
-        object_meta = OrderedDict({'object_class_name': None,
-                                   'motion_class': None,
-                                   'major_class': None,
-                                   'root_class': None,
-                                   'motion_adverb': None})
-
-        return object_meta
+        return OrderedDict(
+            {
+                'object_class_name': None,
+                'motion_class': None,
+                'major_class': None,
+                'root_class': None,
+                'motion_adverb': None,
+            }
+        )
 
     def get_image(self, image_id, anno=None):
         frame = self.image_loader(os.path.join(self.root, 'images', '{:04d}.jpg'.format(self.image_list[image_id])))

@@ -232,11 +232,15 @@ def steepest_descent_resnet50(filter_size=1, num_filters=1, optim_iter=3, optim_
     else:
         raise Exception
 
-    net = LWTLBoxNet(feature_extractor=backbone_net, target_model=target_model, decoder=decoder,
-                     label_encoder=label_encoder,
-                     target_model_input_layer=target_model_input_layer, decoder_input_layers=decoder_input_layers,
-                     box_label_encoder=box_label_encoder)
-    return net
+    return LWTLBoxNet(
+        feature_extractor=backbone_net,
+        target_model=target_model,
+        decoder=decoder,
+        label_encoder=label_encoder,
+        target_model_input_layer=target_model_input_layer,
+        decoder_input_layers=decoder_input_layers,
+        box_label_encoder=box_label_encoder,
+    )
 
 
 @model_constructor

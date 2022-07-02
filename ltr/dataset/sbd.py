@@ -52,8 +52,8 @@ class SBD(BaseImageDataset):
         with open(os.path.join(split_f), "r") as f:
             file_names = [x.strip() for x in f.readlines()]
 
-        image_list = [os.path.join(self.root, 'img', x + ".jpg") for x in file_names]
-        anno_list = [os.path.join(self.root, 'inst', x + ".mat") for x in file_names]
+        image_list = [os.path.join(self.root, 'img', f"{x}.jpg") for x in file_names]
+        anno_list = [os.path.join(self.root, 'inst', f"{x}.mat") for x in file_names]
 
         assert (len(image_list) == len(anno_list))
 
@@ -67,8 +67,10 @@ class SBD(BaseImageDataset):
 
         for im_id, a in enumerate(anno_list):
             mask = self._get_mask_from_mat(a)
-            for instance_id in range(1, mask.max().item() + 1):
-                image_list.append((im_id, instance_id))
+            image_list.extend(
+                (im_id, instance_id)
+                for instance_id in range(1, mask.max().item() + 1)
+            )
 
         return image_list
 
@@ -93,16 +95,18 @@ class SBD(BaseImageDataset):
     def _get_image(self, im_id):
         image_id, _ = self.image_list[im_id]
 
-        img = self.image_loader(self.image_path_list[image_id])
-        return img
+        return self.image_loader(self.image_path_list[image_id])
 
     def get_meta_info(self, im_id):
-        object_meta = OrderedDict({'object_class_name': None,
-                                   'motion_class': None,
-                                   'major_class': None,
-                                   'root_class': None,
-                                   'motion_adverb': None})
-        return object_meta
+        return OrderedDict(
+            {
+                'object_class_name': None,
+                'motion_class': None,
+                'major_class': None,
+                'root_class': None,
+                'motion_adverb': None,
+            }
+        )
 
     def get_image(self, image_id, anno=None):
         image = self._get_image(image_id)

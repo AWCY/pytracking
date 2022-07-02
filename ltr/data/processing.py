@@ -80,7 +80,7 @@ class ATOMProcessing(BaseProcessing):
 
         jittered_size = box[2:4] * torch.exp(torch.randn(2) * self.scale_jitter_factor[mode])
         max_offset = (jittered_size.prod().sqrt() * torch.tensor(self.center_jitter_factor[mode]).float())
-        jittered_center = box[0:2] + 0.5 * box[2:4] + max_offset * (torch.rand(2) - 0.5)
+        jittered_center = box[:2] + 0.5 * box[2:4] + max_offset * (torch.rand(2) - 0.5)
 
         return torch.cat((jittered_center - 0.5 * jittered_size, jittered_size), dim=0)
 
@@ -128,18 +128,29 @@ class ATOMProcessing(BaseProcessing):
             data['test_images'], data['test_anno'] = self.transform['joint'](image=data['test_images'], bbox=data['test_anno'], new_roll=False)
 
         for s in ['train', 'test']:
-            assert self.mode == 'sequence' or len(data[s + '_images']) == 1, \
-                "In pair mode, num train/test frames must be 1"
+            assert (
+                self.mode == 'sequence' or len(data[f'{s}_images']) == 1
+            ), "In pair mode, num train/test frames must be 1"
+
 
             # Add a uniform noise to the center pos
-            jittered_anno = [self._get_jittered_box(a, s) for a in data[s + '_anno']]
+            jittered_anno = [self._get_jittered_box(a, s) for a in data[f'{s}_anno']]
 
             # Crop image region centered at jittered_anno box
-            crops, boxes, _ = prutils.jittered_center_crop(data[s + '_images'], jittered_anno, data[s + '_anno'],
-                                                           self.search_area_factor, self.output_sz)
+            crops, boxes, _ = prutils.jittered_center_crop(
+                data[f'{s}_images'],
+                jittered_anno,
+                data[f'{s}_anno'],
+                self.search_area_factor,
+                self.output_sz,
+            )
+
 
             # Apply transforms
-            data[s + '_images'], data[s + '_anno'] = self.transform[s](image=crops, bbox=boxes, joint=False)
+            data[f'{s}_images'], data[f'{s}_anno'] = self.transform[s](
+                image=crops, bbox=boxes, joint=False
+            )
+
 
         # Generate proposals
         frame2_proposals, gt_iou = zip(*[self._generate_proposals(a) for a in data['test_anno']])
@@ -195,7 +206,7 @@ class KLBBregProcessing(BaseProcessing):
 
         jittered_size = box[2:4] * torch.exp(torch.randn(2) * self.scale_jitter_factor[mode])
         max_offset = (jittered_size.prod().sqrt() * torch.tensor(self.center_jitter_factor[mode]).float())
-        jittered_center = box[0:2] + 0.5 * box[2:4] + max_offset * (torch.rand(2) - 0.5)
+        jittered_center = box[:2] + 0.5 * box[2:4] + max_offset * (torch.rand(2) - 0.5)
 
         return torch.cat((jittered_center - 0.5 * jittered_size, jittered_size), dim=0)
 
@@ -227,18 +238,29 @@ class KLBBregProcessing(BaseProcessing):
             data['test_images'], data['test_anno'] = self.transform['joint'](image=data['test_images'], bbox=data['test_anno'], new_roll=False)
 
         for s in ['train', 'test']:
-            assert self.mode == 'sequence' or len(data[s + '_images']) == 1, \
-                "In pair mode, num train/test frames must be 1"
+            assert (
+                self.mode == 'sequence' or len(data[f'{s}_images']) == 1
+            ), "In pair mode, num train/test frames must be 1"
+
 
             # Add a uniform noise to the center pos
-            jittered_anno = [self._get_jittered_box(a, s) for a in data[s + '_anno']]
+            jittered_anno = [self._get_jittered_box(a, s) for a in data[f'{s}_anno']]
 
             # Crop image region centered at jittered_anno box
-            crops, boxes, _ = prutils.jittered_center_crop(data[s + '_images'], jittered_anno, data[s + '_anno'],
-                                                        self.search_area_factor, self.output_sz)
+            crops, boxes, _ = prutils.jittered_center_crop(
+                data[f'{s}_images'],
+                jittered_anno,
+                data[f'{s}_anno'],
+                self.search_area_factor,
+                self.output_sz,
+            )
+
 
             # Apply transforms
-            data[s + '_images'], data[s + '_anno'] = self.transform[s](image=crops, bbox=boxes, joint=False)
+            data[f'{s}_images'], data[f'{s}_anno'] = self.transform[s](
+                image=crops, bbox=boxes, joint=False
+            )
+
 
         # Generate proposals
         proposals, proposal_density, gt_density = zip(*[self._generate_proposals(a) for a in data['test_anno']])
@@ -280,7 +302,7 @@ class ATOMwKLProcessing(BaseProcessing):
 
         jittered_size = box[2:4] * torch.exp(torch.randn(2) * self.scale_jitter_factor[mode])
         max_offset = (jittered_size.prod().sqrt() * torch.tensor(self.center_jitter_factor[mode]).float())
-        jittered_center = box[0:2] + 0.5 * box[2:4] + max_offset * (torch.rand(2) - 0.5)
+        jittered_center = box[:2] + 0.5 * box[2:4] + max_offset * (torch.rand(2) - 0.5)
 
         return torch.cat((jittered_center - 0.5 * jittered_size, jittered_size), dim=0)
 
@@ -302,18 +324,29 @@ class ATOMwKLProcessing(BaseProcessing):
             data['test_images'], data['test_anno'] = self.transform['joint'](image=data['test_images'], bbox=data['test_anno'], new_roll=False)
 
         for s in ['train', 'test']:
-            assert self.mode == 'sequence' or len(data[s + '_images']) == 1, \
-                "In pair mode, num train/test frames must be 1"
+            assert (
+                self.mode == 'sequence' or len(data[f'{s}_images']) == 1
+            ), "In pair mode, num train/test frames must be 1"
+
 
             # Add a uniform noise to the center pos
-            jittered_anno = [self._get_jittered_box(a, s) for a in data[s + '_anno']]
+            jittered_anno = [self._get_jittered_box(a, s) for a in data[f'{s}_anno']]
 
             # Crop image region centered at jittered_anno box
-            crops, boxes, _ = prutils.jittered_center_crop(data[s + '_images'], jittered_anno, data[s + '_anno'],
-                                                           self.search_area_factor, self.output_sz)
+            crops, boxes, _ = prutils.jittered_center_crop(
+                data[f'{s}_images'],
+                jittered_anno,
+                data[f'{s}_anno'],
+                self.search_area_factor,
+                self.output_sz,
+            )
+
 
             # Apply transforms
-            data[s + '_images'], data[s + '_anno'] = self.transform[s](image=crops, bbox=boxes, joint=False)
+            data[f'{s}_images'], data[f'{s}_anno'] = self.transform[s](
+                image=crops, bbox=boxes, joint=False
+            )
+
 
         # Generate proposals
         proposals, proposal_density, gt_density, proposal_iou = zip(
@@ -389,7 +422,7 @@ class DiMPProcessing(BaseProcessing):
 
         jittered_size = box[2:4] * torch.exp(torch.randn(2) * self.scale_jitter_factor[mode])
         max_offset = (jittered_size.prod().sqrt() * torch.tensor(self.center_jitter_factor[mode]).float())
-        jittered_center = box[0:2] + 0.5 * box[2:4] + max_offset * (torch.rand(2) - 0.5)
+        jittered_center = box[:2] + 0.5 * box[2:4] + max_offset * (torch.rand(2) - 0.5)
 
         return torch.cat((jittered_center - 0.5 * jittered_size, jittered_size), dim=0)
 
@@ -434,12 +467,16 @@ class DiMPProcessing(BaseProcessing):
             torch.Tensor - Tensor of shape (num_images, label_sz, label_sz) containing the label for each sample
         """
 
-        gauss_label = prutils.gaussian_label_function(target_bb.view(-1, 4), self.label_function_params['sigma_factor'],
-                                                      self.label_function_params['kernel_sz'],
-                                                      self.label_function_params['feature_sz'], self.output_sz,
-                                                      end_pad_if_even=self.label_function_params.get('end_pad_if_even', True))
-
-        return gauss_label
+        return prutils.gaussian_label_function(
+            target_bb.view(-1, 4),
+            self.label_function_params['sigma_factor'],
+            self.label_function_params['kernel_sz'],
+            self.label_function_params['feature_sz'],
+            self.output_sz,
+            end_pad_if_even=self.label_function_params.get(
+                'end_pad_if_even', True
+            ),
+        )
 
     def __call__(self, data: TensorDict):
         """
@@ -457,17 +494,29 @@ class DiMPProcessing(BaseProcessing):
             data['test_images'], data['test_anno'] = self.transform['joint'](image=data['test_images'], bbox=data['test_anno'], new_roll=False)
 
         for s in ['train', 'test']:
-            assert self.mode == 'sequence' or len(data[s + '_images']) == 1, \
-                "In pair mode, num train/test frames must be 1"
+            assert (
+                self.mode == 'sequence' or len(data[f'{s}_images']) == 1
+            ), "In pair mode, num train/test frames must be 1"
+
 
             # Add a uniform noise to the center pos
-            jittered_anno = [self._get_jittered_box(a, s) for a in data[s + '_anno']]
+            jittered_anno = [self._get_jittered_box(a, s) for a in data[f'{s}_anno']]
 
-            crops, boxes = prutils.target_image_crop(data[s + '_images'], jittered_anno, data[s + '_anno'],
-                                                     self.search_area_factor, self.output_sz, mode=self.crop_type,
-                                                     max_scale_change=self.max_scale_change)
+            crops, boxes = prutils.target_image_crop(
+                data[f'{s}_images'],
+                jittered_anno,
+                data[f'{s}_anno'],
+                self.search_area_factor,
+                self.output_sz,
+                mode=self.crop_type,
+                max_scale_change=self.max_scale_change,
+            )
 
-            data[s + '_images'], data[s + '_anno'] = self.transform[s](image=crops, bbox=boxes, joint=False)
+
+            data[f'{s}_images'], data[f'{s}_anno'] = self.transform[s](
+                image=crops, bbox=boxes, joint=False
+            )
+
 
         # Generate proposals
         if self.proposal_params:
@@ -541,7 +590,7 @@ class KLDiMPProcessing(BaseProcessing):
 
         jittered_size = box[2:4] * torch.exp(torch.randn(2) * self.scale_jitter_factor[mode])
         max_offset = (jittered_size.prod().sqrt() * torch.tensor(self.center_jitter_factor[mode]).float())
-        jittered_center = box[0:2] + 0.5 * box[2:4] + max_offset * (torch.rand(2) - 0.5)
+        jittered_center = box[:2] + 0.5 * box[2:4] + max_offset * (torch.rand(2) - 0.5)
 
         return torch.cat((jittered_center - 0.5 * jittered_size, jittered_size), dim=0)
 
@@ -568,12 +617,16 @@ class KLDiMPProcessing(BaseProcessing):
             torch.Tensor - Tensor of shape (num_images, label_sz, label_sz) containing the label for each sample
         """
 
-        gauss_label = prutils.gaussian_label_function(target_bb.view(-1, 4), self.label_function_params['sigma_factor'],
-                                                      self.label_function_params['kernel_sz'],
-                                                      self.label_function_params['feature_sz'], self.output_sz,
-                                                      end_pad_if_even=self.label_function_params.get('end_pad_if_even', True))
-
-        return gauss_label
+        return prutils.gaussian_label_function(
+            target_bb.view(-1, 4),
+            self.label_function_params['sigma_factor'],
+            self.label_function_params['kernel_sz'],
+            self.label_function_params['feature_sz'],
+            self.output_sz,
+            end_pad_if_even=self.label_function_params.get(
+                'end_pad_if_even', True
+            ),
+        )
 
     def _generate_label_density(self, target_bb):
         """ Generates the gaussian label density centered at target_bb
@@ -620,17 +673,29 @@ class KLDiMPProcessing(BaseProcessing):
             data['test_images'], data['test_anno'] = self.transform['joint'](image=data['test_images'], bbox=data['test_anno'], new_roll=False)
 
         for s in ['train', 'test']:
-            assert self.mode == 'sequence' or len(data[s + '_images']) == 1, \
-                "In pair mode, num train/test frames must be 1"
+            assert (
+                self.mode == 'sequence' or len(data[f'{s}_images']) == 1
+            ), "In pair mode, num train/test frames must be 1"
+
 
             # Add a uniform noise to the center pos
-            jittered_anno = [self._get_jittered_box(a, s) for a in data[s + '_anno']]
+            jittered_anno = [self._get_jittered_box(a, s) for a in data[f'{s}_anno']]
 
-            crops, boxes = prutils.target_image_crop(data[s + '_images'], jittered_anno, data[s + '_anno'],
-                                                     self.search_area_factor, self.output_sz, mode=self.crop_type,
-                                                     max_scale_change=self.max_scale_change)
+            crops, boxes = prutils.target_image_crop(
+                data[f'{s}_images'],
+                jittered_anno,
+                data[f'{s}_anno'],
+                self.search_area_factor,
+                self.output_sz,
+                mode=self.crop_type,
+                max_scale_change=self.max_scale_change,
+            )
 
-            data[s + '_images'], data[s + '_anno'] = self.transform[s](image=crops, bbox=boxes, joint=False)
+
+            data[f'{s}_images'], data[f'{s}_anno'] = self.transform[s](
+                image=crops, bbox=boxes, joint=False
+            )
+
 
         # Generate proposals
         proposals, proposal_density, gt_density = zip(*[self._generate_proposals(a) for a in data['test_anno']])
@@ -640,9 +705,9 @@ class KLDiMPProcessing(BaseProcessing):
         data['gt_density'] = gt_density
 
         for s in ['train', 'test']:
-            is_distractor = data.get('is_distractor_{}_frame'.format(s), None)
+            is_distractor = data.get(f'is_distractor_{s}_frame', None)
             if is_distractor is not None:
-                for is_dist, box in zip(is_distractor, data[s+'_anno']):
+                for is_dist, box in zip(is_distractor, data[f'{s}_anno']):
                     if is_dist:
                         box[0] = 99999999.9
                         box[1] = 99999999.9
@@ -736,7 +801,7 @@ class LWLProcessing(BaseProcessing):
             raise Exception
 
         max_offset = (jittered_size.prod().sqrt() * torch.tensor(self.center_jitter_factor[mode])).float()
-        jittered_center = box[0:2] + 0.5 * box[2:4] + max_offset * (torch.rand(2) - 0.5)
+        jittered_center = box[:2] + 0.5 * box[2:4] + max_offset * (torch.rand(2) - 0.5)
 
         return torch.cat((jittered_center - 0.5 * jittered_size, jittered_size), dim=0)
 
@@ -750,22 +815,37 @@ class LWLProcessing(BaseProcessing):
                 image=data['test_images'], bbox=data['test_anno'], mask=data['test_masks'], new_roll=self.new_roll)
 
         for s in ['train', 'test']:
-            assert self.mode == 'sequence' or len(data[s + '_images']) == 1, \
-                "In pair mode, num train/test frames must be 1"
+            assert (
+                self.mode == 'sequence' or len(data[f'{s}_images']) == 1
+            ), "In pair mode, num train/test frames must be 1"
+
 
             # Add a uniform noise to the center pos
-            jittered_anno = [self._get_jittered_box(a, s) for a in data[s + '_anno']]
-            orig_anno = data[s + '_anno']
+            jittered_anno = [self._get_jittered_box(a, s) for a in data[f'{s}_anno']]
+            orig_anno = data[f'{s}_anno']
 
             # Extract a crop containing the target
-            crops, boxes, mask_crops = prutils.target_image_crop(data[s + '_images'], jittered_anno,
-                                                                 data[s + '_anno'], self.search_area_factor,
-                                                                 self.output_sz, mode=self.crop_type,
-                                                                 max_scale_change=self.max_scale_change,
-                                                                 masks=data[s + '_masks'])
+            crops, boxes, mask_crops = prutils.target_image_crop(
+                data[f'{s}_images'],
+                jittered_anno,
+                data[f'{s}_anno'],
+                self.search_area_factor,
+                self.output_sz,
+                mode=self.crop_type,
+                max_scale_change=self.max_scale_change,
+                masks=data[f'{s}_masks'],
+            )
+
 
             # Apply independent transformations to each image
-            data[s + '_images'], data[s + '_anno'], data[s + '_masks'] = self.transform[s](image=crops, bbox=boxes, mask=mask_crops, joint=False)
+            (
+                data[f'{s}_images'],
+                data[f'{s}_anno'],
+                data[f'{s}_masks'],
+            ) = self.transform[s](
+                image=crops, bbox=boxes, mask=mask_crops, joint=False
+            )
+
 
         # Prepare output
         if self.mode == 'sequence':
@@ -848,14 +928,32 @@ class KYSProcessing(BaseProcessing):
             jittered_box = None
             for _ in range(10):
                 orig_box = boxes[i]
-                jittered_size = orig_box[2:4] * torch.exp(torch.randn(2) * self.scale_jitter_param[mode + '_factor'])
+                jittered_size = orig_box[2:4] * torch.exp(
+                    torch.randn(2) * self.scale_jitter_param[f'{mode}_factor']
+                )
 
-                if self.center_jitter_param.get(mode + '_mode', 'uniform') == 'uniform':
-                    max_offset = (jittered_size.prod().sqrt() * self.center_jitter_param[mode + '_factor']).item()
+
+                if (
+                    self.center_jitter_param.get(f'{mode}_mode', 'uniform')
+                    == 'uniform'
+                ):
+                    max_offset = (
+                        jittered_size.prod().sqrt()
+                        * self.center_jitter_param[f'{mode}_factor']
+                    ).item()
+
                     offset_factor = (torch.rand(2) - 0.5)
-                    jittered_center = orig_box[0:2] + 0.5 * orig_box[2:4] + max_offset * offset_factor
+                    jittered_center = (
+                        orig_box[:2]
+                        + 0.5 * orig_box[2:4]
+                        + max_offset * offset_factor
+                    )
 
-                    if self.center_jitter_param.get(mode + '_limit_motion', False) and i > 0:
+
+                    if (
+                        self.center_jitter_param.get(f'{mode}_limit_motion', False)
+                        and i > 0
+                    ):
                         prev_out_box_center = out_boxes[-1][:2] + 0.5 * out_boxes[-1][2:]
                         if abs(jittered_center[0] - prev_out_box_center[0]) > out_boxes[-1][2:].prod().sqrt() * 2.5:
                             jittered_center[0] = orig_box[0] + 0.5 * orig_box[2] + max_offset * offset_factor[0] * -1
@@ -910,14 +1008,26 @@ class KYSProcessing(BaseProcessing):
 
         for s in ['train', 'test']:
             # Generate synthetic sequence
-            jittered_anno = self._generate_synthetic_motion(data[s + '_anno'], data[s + '_images'], s)
+            jittered_anno = self._generate_synthetic_motion(
+                data[f'{s}_anno'], data[f'{s}_images'], s
+            )
+
 
             # Crop images
-            crops, boxes, _ = prutils.jittered_center_crop(data[s + '_images'], jittered_anno, data[s + '_anno'],
-                                                           self.search_area_factor, self.output_sz)
+            crops, boxes, _ = prutils.jittered_center_crop(
+                data[f'{s}_images'],
+                jittered_anno,
+                data[f'{s}_anno'],
+                self.search_area_factor,
+                self.output_sz,
+            )
+
 
             # Add transforms
-            data[s + '_images'], data[s + '_anno'] = self.transform[s](image=crops, bbox=boxes, joint=False)
+            data[f'{s}_images'], data[f'{s}_anno'] = self.transform[s](
+                image=crops, bbox=boxes, joint=False
+            )
+
 
         if self.proposal_params:
             frame2_proposals, gt_iou = zip(*[self._generate_proposals(a.numpy()) for a in data['test_anno']])

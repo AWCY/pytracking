@@ -72,7 +72,10 @@ class ToMPnet(nn.Module):
             layers = ['head']
         if 'head' not in layers:
             return self.feature_extractor(im, layers)
-        backbone_layers = sorted(list(set([l for l in layers + self.head_layer if l != 'head'])))
+        backbone_layers = sorted(
+            list({l for l in layers + self.head_layer if l != 'head'})
+        )
+
         all_feat = self.feature_extractor(im, backbone_layers)
         all_feat['classification'] = self.extract_head_feat(all_feat)
         return OrderedDict({l: all_feat[l] for l in layers})
@@ -115,9 +118,9 @@ def tompnet50(filter_size=4, head_layer='layer3', backbone_pretrained=True, head
     head = heads.Head(filter_predictor=filter_predictor, feature_extractor=head_feature_extractor,
                       classifier=classifier, bb_regressor=bb_regressor)
 
-    # ToMP network
-    net = ToMPnet(feature_extractor=backbone_net, head=head, head_layer=head_layer)
-    return net
+    return ToMPnet(
+        feature_extractor=backbone_net, head=head, head_layer=head_layer
+    )
 
 
 @model_constructor
@@ -157,6 +160,6 @@ def tompnet101(filter_size=1, head_layer='layer3', backbone_pretrained=True, hea
     head = heads.Head(filter_predictor=filter_predictor, feature_extractor=head_feature_extractor,
                       classifier=classifier, bb_regressor=bb_regressor)
 
-    # ToMP network
-    net = ToMPnet(feature_extractor=backbone_net, head=head, head_layer=head_layer)
-    return net
+    return ToMPnet(
+        feature_extractor=backbone_net, head=head, head_layer=head_layer
+    )

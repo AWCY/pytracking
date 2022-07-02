@@ -40,5 +40,4 @@ class ConvGRUCell(nn.Module):
         input_state_cur_reset = torch.cat([input, reset_gate*state_cur], dim=1)
         state_new = torch.tanh(self.conv_state_new(input_state_cur_reset))
 
-        state_next = (1.0 - update_gate) * state_cur + update_gate * state_new
-        return state_next
+        return (1.0 - update_gate) * state_cur + update_gate * state_new

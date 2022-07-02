@@ -39,7 +39,7 @@ class Lasot(BaseVideoDataset):
         super().__init__('LaSOT', root, image_loader)
 
         # Keep a list of all classes
-        self.class_list = [f for f in os.listdir(self.root)]
+        self.class_list = list(os.listdir(self.root))
         self.class_to_id = {cls_name: cls_id for cls_id, cls_name in enumerate(self.class_list)}
 
         self.sequence_list = self._build_sequence_list(vid_ids, split)
@@ -110,9 +110,7 @@ class Lasot(BaseVideoDataset):
         with open(out_of_view_file, 'r') as f:
             out_of_view = torch.ByteTensor([int(v) for v in list(csv.reader(f))[0]])
 
-        target_visible = ~occlusion & ~out_of_view
-
-        return target_visible
+        return ~occlusion & ~out_of_view
 
     def _get_sequence_path(self, seq_id):
         seq_name = self.sequence_list[seq_id]
@@ -137,14 +135,11 @@ class Lasot(BaseVideoDataset):
         return self.image_loader(self._get_frame_path(seq_path, frame_id))
 
     def _get_class(self, seq_path):
-        raw_class = seq_path.split('/')[-2]
-        return raw_class
+        return seq_path.split('/')[-2]
 
     def get_class_name(self, seq_id):
         seq_path = self._get_sequence_path(seq_id)
-        obj_class = self._get_class(seq_path)
-
-        return obj_class
+        return self._get_class(seq_path)
 
     def get_frames(self, seq_id, frame_ids, anno=None):
         seq_path = self._get_sequence_path(seq_id)
@@ -155,9 +150,10 @@ class Lasot(BaseVideoDataset):
         if anno is None:
             anno = self.get_sequence_info(seq_id)
 
-        anno_frames = {}
-        for key, value in anno.items():
-            anno_frames[key] = [value[f_id, ...].clone() for f_id in frame_ids]
+        anno_frames = {
+            key: [value[f_id, ...].clone() for f_id in frame_ids]
+            for key, value in anno.items()
+        }
 
         object_meta = OrderedDict({'object_class_name': obj_class,
                                    'motion_class': None,

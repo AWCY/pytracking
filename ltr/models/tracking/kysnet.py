@@ -77,9 +77,7 @@ class KYSNet(nn.Module):
         return self.backbone_feature_extractor(im, layers)
 
     def get_backbone_clf_feat(self, backbone_feat):
-        feat = backbone_feat[self.classification_layer]
-
-        return feat
+        return backbone_feat[self.classification_layer]
 
     def get_backbone_bbreg_feat(self, backbone_feat):
         return [backbone_feat[l] for l in self.bb_regressor_layer]
@@ -89,15 +87,23 @@ class KYSNet(nn.Module):
 
     def get_motion_feat(self, backbone_feat):
         if self.motion_feat_extractor is not None:
-            motion_feat = self.motion_feat_extractor(backbone_feat)
-            return motion_feat
+            return self.motion_feat_extractor(backbone_feat)
         else:
             return self.predictor.extract_motion_feat(backbone_feat[self.classification_layer])
 
     def extract_features(self, im, layers):
         if 'classification' not in layers:
             return self.backbone_feature_extractor(im, layers)
-        backbone_layers = sorted(list(set([l for l in layers + [self.classification_layer] if l != 'classification' and l != 'motion'])))
+        backbone_layers = sorted(
+            list(
+                {
+                    l
+                    for l in layers + [self.classification_layer]
+                    if l not in ['classification', 'motion']
+                }
+            )
+        )
+
         all_feat = self.backbone_feature_extractor(im, backbone_layers)
         all_feat['classification'] = self.dimp_classifier.extract_classification_feat(all_feat[self.classification_layer])
 
@@ -165,10 +171,13 @@ def kysnet_res50(filter_size=4, optim_iter=3, appearance_feature_dim=512,
 
     response_predictor = predictor_wrappers.PredictorWrapper(cost_volume_layer, motion_response_predictor)
 
-    net = KYSNet(backbone_feature_extractor=backbone_net, dimp_classifier=classifier,
-                 predictor=response_predictor,
-                 bb_regressor=bb_regressor,
-                 classification_layer=classification_layer, bb_regressor_layer=['layer2', 'layer3'],
-                 train_feature_extractor=train_feature_extractor,
-                 train_iounet=train_iounet)
-    return net
+    return KYSNet(
+        backbone_feature_extractor=backbone_net,
+        dimp_classifier=classifier,
+        predictor=response_predictor,
+        bb_regressor=bb_regressor,
+        classification_layer=classification_layer,
+        bb_regressor_layer=['layer2', 'layer3'],
+        train_feature_extractor=train_feature_extractor,
+        train_iounet=train_iounet,
+    )

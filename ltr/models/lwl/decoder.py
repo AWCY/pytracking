@@ -49,9 +49,7 @@ class CAB(nn.Module):
             global_pool = torch.cat((shallow_pool, deeper_pool), dim=1)
         conv_1x1 = self.convreluconv(global_pool)
         inputs = shallower * torch.sigmoid(conv_1x1)
-        out = inputs + interpolate(deeper, inputs.shape[-2:])
-
-        return out
+        return inputs + interpolate(deeper, inputs.shape[-2:])
 
 
 class RRB(nn.Module):
@@ -104,21 +102,17 @@ class LWTLDecoder(nn.Module):
         oc = {'layer1': 1, 'layer2': 2, 'layer3': 2, 'layer4': 4}
         out_feature_channels = {}
 
-        if 'layer4' in ft_channels.keys():
-            last_layer = 'layer4'
-        else:
-            last_layer = 'layer3'
-
+        last_layer = 'layer4' if 'layer4' in ft_channels.keys() else 'layer3'
         prev_layer = None
         for L, fc in self.ft_channels.items():
-            if not L == last_layer:
+            if L != last_layer:
                 self.proj[L] = nn.Sequential(conv(oc[prev_layer]*out_channels, oc[L]*out_channels, 1), relu())
 
             self.TSE[L] = TSE(fc, ic, oc[L] * out_channels)
             self.RRB1[L] = RRB(oc[L] * out_channels, use_bn=use_bn)
             self.CAB[L] = CAB(oc[L] * out_channels, L == last_layer)
             self.RRB2[L] = RRB(oc[L] * out_channels, use_bn=use_bn)
-            out_feature_channels['{}_dec'.format(L)] = oc[L]*out_channels
+            out_feature_channels[f'{L}_dec'] = oc[L]*out_channels
             prev_layer = L
 
         self.project = Upsampler(out_channels)
@@ -137,24 +131,31 @@ class LWTLDecoder(nn.Module):
         scores = scores.view(-1, *scores.shape[-3:])
 
         x = None
-        for i, L in enumerate(self.ft_channels):
+        for L in self.ft_channels:
             ft = features[L]
 
             s = interpolate(scores, ft.shape[-2:])
-            if not x is None:
+            if x is not None:
                 x = self.proj[L](x)
 
-            if num_objects is not None:
-                h, hpool = self.TSE[L](ft.view(ft.shape[0], 1, *ft.shape[-3:]).repeat(1, num_objects, 1, 1, 1).view(-1, *ft.shape[-3:]), s, x)
-            else:
-                h, hpool = self.TSE[L](ft, s, x)
+            h, hpool = (
+                self.TSE[L](
+                    ft.view(ft.shape[0], 1, *ft.shape[-3:])
+                    .repeat(1, num_objects, 1, 1, 1)
+                    .view(-1, *ft.shape[-3:]),
+                    s,
+                    x,
+                )
+                if num_objects is not None
+                else self.TSE[L](ft, s, x)
+            )
 
             h = self.RRB1[L](h)
             h = self.CAB[L](hpool, h)
             x = self.RRB2[L](h)
 
-            if '{}_dec'.format(L) in output_layers:
-                outputs['{}_dec'.format(L)] = x
+            if f'{L}_dec' in output_layers:
+                outputs[f'{L}_dec'] = x
 
         x = self.project(x, image_size)
         return x, outputs

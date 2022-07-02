@@ -52,10 +52,7 @@ class LinearFilter(nn.Module):
         filter, filter_iter, _ = self.get_filter(train_feat, train_label,
                                                  *args, **kwargs)
 
-        # Predict mask encodings for the test frames
-        mask_encodings = [self.apply_target_model(f, test_feat) for f in filter_iter]
-
-        return mask_encodings
+        return [self.apply_target_model(f, test_feat) for f in filter_iter]
 
     def extract_target_model_features(self, feat, num_sequences=None):
         if self.feature_extractor is None:
@@ -68,8 +65,9 @@ class LinearFilter(nn.Module):
 
     def apply_target_model(self, weights, feat):
         """ Apply the target model to obtain the mask encodings"""
-        mask_encoding = filter_layer.apply_filter(feat, weights, dilation_factors=self.filter_dilation_factors)
-        return mask_encoding
+        return filter_layer.apply_filter(
+            feat, weights, dilation_factors=self.filter_dilation_factors
+        )
 
     def get_filter(self, feat, train_label, train_sw, num_objects=None, *args, **kwargs):
         """ Get the initial target model parameters given the few-shot labels """

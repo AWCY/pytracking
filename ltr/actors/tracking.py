@@ -46,7 +46,10 @@ class DiMPActor(BaseActor):
         if 'test_iter_clf' in self.loss_weight.keys():
             test_iter_weights = self.loss_weight['test_iter_clf']
             if isinstance(test_iter_weights, list):
-                loss_test_iter_clf = sum([a*b for a, b in zip(test_iter_weights, clf_losses_test[1:-1])])
+                loss_test_iter_clf = sum(
+                    a * b for a, b in zip(test_iter_weights, clf_losses_test[1:-1])
+                )
+
             else:
                 loss_test_iter_clf = (test_iter_weights / (len(clf_losses_test) - 2)) * sum(clf_losses_test[1:-1])
 
@@ -62,7 +65,7 @@ class DiMPActor(BaseActor):
         if 'test_iter_clf' in self.loss_weight.keys():
             stats['Loss/test_iter_clf'] = loss_test_iter_clf.item()
         stats['ClfTrain/test_loss'] = clf_loss_test.item()
-        if len(clf_losses_test) > 0:
+        if clf_losses_test:
             stats['ClfTrain/test_init_loss'] = clf_losses_test[0].item()
             if len(clf_losses_test) > 2:
                 stats['ClfTrain/test_iter_loss'] = sum(clf_losses_test[1:-1]).item() / (len(clf_losses_test) - 2)
@@ -124,7 +127,11 @@ class KLDiMPActor(BaseActor):
             if 'test_iter_clf' in self.loss_weight.keys():
                 test_iter_weights = self.loss_weight['test_iter_clf']
                 if isinstance(test_iter_weights, list):
-                    loss_test_iter_clf = sum([a * b for a, b in zip(test_iter_weights, clf_losses_test[1:-1])])
+                    loss_test_iter_clf = sum(
+                        a * b
+                        for a, b in zip(test_iter_weights, clf_losses_test[1:-1])
+                    )
+
                 else:
                     loss_test_iter_clf = (test_iter_weights / (len(clf_losses_test) - 2)) * sum(clf_losses_test[1:-1])
 
@@ -148,7 +155,11 @@ class KLDiMPActor(BaseActor):
             if 'clf_ce_iter' in self.loss_weight.keys() and len(clf_ce_losses) > 2:
                 test_iter_weights = self.loss_weight['clf_ce_iter']
                 if isinstance(test_iter_weights, list):
-                    loss_clf_ce_iter = sum([a * b for a, b in zip(test_iter_weights, clf_ce_losses[1:-1])])
+                    loss_clf_ce_iter = sum(
+                        a * b
+                        for a, b in zip(test_iter_weights, clf_ce_losses[1:-1])
+                    )
+
                 else:
                     loss_clf_ce_iter = (test_iter_weights / (len(clf_ce_losses) - 2)) * sum(clf_ce_losses[1:-1])
 

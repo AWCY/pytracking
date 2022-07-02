@@ -50,20 +50,21 @@ def sample_target(im, target_bb, search_area_factor, output_sz=None, mask=None):
     if mask is not None:
         mask_crop_padded = F.pad(mask_crop, pad=(x1_pad, x2_pad, y1_pad, y2_pad), mode='constant', value=0)
 
-    if output_sz is not None:
-        resize_factor = output_sz / crop_sz
-        im_crop_padded = cv.resize(im_crop_padded, (output_sz, output_sz))
+    if output_sz is None:
+        return (
+            (im_crop_padded, 1.0)
+            if mask is None
+            else (im_crop_padded, 1.0, mask_crop_padded)
+        )
 
-        if mask is None:
-            return im_crop_padded, resize_factor
-        mask_crop_padded = \
-        F.interpolate(mask_crop_padded[None, None], (output_sz, output_sz), mode='bilinear', align_corners=False)[0, 0]
-        return im_crop_padded, resize_factor, mask_crop_padded
+    resize_factor = output_sz / crop_sz
+    im_crop_padded = cv.resize(im_crop_padded, (output_sz, output_sz))
 
-    else:
-        if mask is None:
-            return im_crop_padded, 1.0
-        return im_crop_padded, 1.0, mask_crop_padded
+    if mask is None:
+        return im_crop_padded, resize_factor
+    mask_crop_padded = \
+    F.interpolate(mask_crop_padded[None, None], (output_sz, output_sz), mode='bilinear', align_corners=False)[0, 0]
+    return im_crop_padded, resize_factor, mask_crop_padded
 
 
 def transform_image_to_crop(box_in: torch.Tensor, box_extract: torch.Tensor, resize_factor: float,
@@ -78,15 +79,14 @@ def transform_image_to_crop(box_in: torch.Tensor, box_extract: torch.Tensor, res
     returns:
         torch.Tensor - transformed co-ordinates of box_in
     """
-    box_extract_center = box_extract[0:2] + 0.5 * box_extract[2:4]
+    box_extract_center = box_extract[:2] + 0.5 * box_extract[2:4]
 
-    box_in_center = box_in[0:2] + 0.5 * box_in[2:4]
+    box_in_center = box_in[:2] + 0.5 * box_in[2:4]
 
     box_out_center = (crop_sz - 1) / 2 + (box_in_center - box_extract_center) * resize_factor
     box_out_wh = box_in[2:4] * resize_factor
 
-    box_out = torch.cat((box_out_center - 0.5 * box_out_wh, box_out_wh))
-    return box_out
+    return torch.cat((box_out_center - 0.5 * box_out_wh, box_out_wh))
 
 
 def jittered_center_crop(frames, box_extract, box_gt, search_area_factor, output_sz, masks=None):
@@ -165,13 +165,19 @@ def sample_target_adaptive(im, target_bb, search_area_factor, output_sz, mode: s
                 target_bb[2:].prod() / output_sz.prod()).sqrt() * search_area_factor).ceil().long().tolist()
 
     # Get new sample size if forced inside the image
-    if mode == 'inside' or mode == 'inside_major':
+    if mode == 'inside':
         # Calculate rescaling factor if outside the image
         rescale_factor = [crop_sz_x / im_w, crop_sz_y / im_h]
-        if mode == 'inside':
-            rescale_factor = max(rescale_factor)
-        elif mode == 'inside_major':
-            rescale_factor = min(rescale_factor)
+        rescale_factor = max(rescale_factor)
+        rescale_factor = min(max(1, rescale_factor), max_scale_change)
+
+        crop_sz_x = math.floor(crop_sz_x / rescale_factor)
+        crop_sz_y = math.floor(crop_sz_y / rescale_factor)
+
+    elif mode == 'inside_major':
+        # Calculate rescaling factor if outside the image
+        rescale_factor = [crop_sz_x / im_w, crop_sz_y / im_h]
+        rescale_factor = min(rescale_factor)
         rescale_factor = min(max(1, rescale_factor), max_scale_change)
 
         crop_sz_x = math.floor(crop_sz_x / rescale_factor)
@@ -232,10 +238,7 @@ def sample_target_adaptive(im, target_bb, search_area_factor, output_sz, mode: s
 
     crop_box = torch.Tensor([x1, y1, x2 - x1, y2 - y1])
 
-    if mask is None:
-        return im_out, crop_box
-    else:
-        return im_out, crop_box, mask_out
+    return (im_out, crop_box) if mask is None else (im_out, crop_box, mask_out)
 
 
 def sample_target_from_crop_region(im, crop_box, output_sz):
@@ -270,10 +273,7 @@ def sample_target_from_crop_region(im, crop_box, output_sz):
     # Pad
     im_crop_padded = cv.copyMakeBorder(im_crop, y1_pad, y2_pad, x1_pad, x2_pad, cv.BORDER_REPLICATE)
 
-    # Resize image
-    im_out = cv.resize(im_crop_padded, tuple(output_sz.long().tolist()))
-
-    return im_out
+    return cv.resize(im_crop_padded, tuple(output_sz.long().tolist()))
 
 
 def crop_and_resize(im, box, crop_bb, output_sz, mask=None):
@@ -328,10 +328,7 @@ def crop_and_resize(im, box, crop_bb, output_sz, mask=None):
     else:
         box_crop = None
 
-    if mask is None:
-        return im_out, box_crop
-    else:
-        return im_out, box_crop, mask_out
+    return (im_out, box_crop) if mask is None else (im_out, box_crop, mask_out)
 
 
 def transform_box_to_crop(box: torch.Tensor, crop_box: torch.Tensor, crop_sz: torch.Tensor) -> torch.Tensor:
@@ -470,7 +467,7 @@ def perturb_box(box, min_iou=0.5, sigma_factor=0.1):
     perturb_factor = torch.sqrt(box[2] * box[3]) * c_sigma_factor
 
     # multiple tries to ensure that the perturbed box has iou > min_iou with the input box
-    for i_ in range(100):
+    for _ in range(100):
         c_x = box[0] + 0.5 * box[2]
         c_y = box[1] + 0.5 * box[3]
         c_x_per = random.gauss(c_x, perturb_factor[0])
@@ -550,10 +547,9 @@ def gaussian_label_function(target_bb, sigma_factor, kernel_sz, feat_sz, image_s
     gauss_label = gauss_2d(feat_sz, sigma, center, end_pad, density=density)
     if density:
         sz = (feat_sz + torch.Tensor(end_pad)).prod()
-        label = (1.0 - uni_bias) * gauss_label + uni_bias / sz
+        return (1.0 - uni_bias) * gauss_label + uni_bias / sz
     else:
-        label = gauss_label + uni_bias
-    return label
+        return gauss_label + uni_bias
 
 
 def gauss_density_centered(x, std):
@@ -573,7 +569,7 @@ def gmm_density_centered(x, std):
     """
     if x.dim() == std.dim() - 1:
         x = x.unsqueeze(-1)
-    elif not (x.dim() == std.dim() and x.shape[-1] == 1):
+    elif x.dim() != std.dim() or x.shape[-1] != 1:
         raise ValueError('Last dimension must be the gmm stds.')
     return gauss_density_centered(x, std).prod(-2).mean(-1)
 

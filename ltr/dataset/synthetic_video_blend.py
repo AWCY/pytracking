@@ -22,8 +22,12 @@ class SyntheticVideoBlend(BaseVideoDataset):
         """
         assert foreground_image_dataset.has_segmentation_info()
 
-        super().__init__(foreground_image_dataset.get_name() + '_syn_vid_blend', foreground_image_dataset.root,
-                         foreground_image_dataset.image_loader)
+        super().__init__(
+            f'{foreground_image_dataset.get_name()}_syn_vid_blend',
+            foreground_image_dataset.root,
+            foreground_image_dataset.image_loader,
+        )
+
         self.foreground_image_dataset = foreground_image_dataset
         self.background_image_dataset = background_image_dataset
 
@@ -103,9 +107,10 @@ class SyntheticVideoBlend(BaseVideoDataset):
 
         fg_frame_list = [fg_frame.copy() for _ in frame_ids]
 
-        fg_anno_frames = {}
-        for key, value in fg_anno.items():
-            fg_anno_frames[key] = [value[0].clone() for f_id in frame_ids]
+        fg_anno_frames = {
+            key: [value[0].clone() for _ in frame_ids]
+            for key, value in fg_anno.items()
+        }
 
         if self.foreground_transform is not None:
             fg_frame_list, fg_anno_frames['bbox'], fg_anno_frames['mask'] = self.foreground_transform(
@@ -121,13 +126,13 @@ class SyntheticVideoBlend(BaseVideoDataset):
 
         bg_frame_list = [bg_frame.copy() for _ in frame_ids]
 
-        bg_anno_frames = {}
-        for key, value in bg_anno.items():
-            # Note: Since we get bg anno from image dataset, it does not has frame dimension
-            bg_anno_frames[key] = [value.clone() for f_id in frame_ids]
+        bg_anno_frames = {
+            key: [value.clone() for _ in frame_ids]
+            for key, value in bg_anno.items()
+        }
 
         if self.background_transform is not None:
-            if 'mask' in bg_anno_frames.keys():
+            if 'mask' in bg_anno_frames:
                 bg_frame_list, bg_anno_frames['bbox'], bg_anno_frames['mask'] = self.background_transform(
                     image=bg_frame_list,
                     bbox=bg_anno_frames['bbox'],

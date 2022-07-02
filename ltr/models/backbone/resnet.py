@@ -159,12 +159,9 @@ class ResNet(Backbone):
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, dilation=dilation))
+        layers = [block(self.inplanes, planes, stride, downsample, dilation=dilation)]
         self.inplanes = planes * block.expansion
-        for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
-
+        layers.extend(block(self.inplanes, planes) for _ in range(1, blocks))
         return nn.Sequential(*layers)
 
     def _add_output_and_check(self, name, x, outputs, output_layers):
@@ -230,7 +227,7 @@ def resnet_baby(output_layers=None, pretrained=False, inplanes=16, **kwargs):
     else:
         for l in output_layers:
             if l not in ['conv1', 'layer1', 'layer2', 'layer3', 'layer4', 'fc']:
-                raise ValueError('Unknown layer: {}'.format(l))
+                raise ValueError(f'Unknown layer: {l}')
 
     model = ResNet(BasicBlock, [2, 2, 2, 2], output_layers, inplanes=inplanes, **kwargs)
 
@@ -248,7 +245,7 @@ def resnet18(output_layers=None, pretrained=False, **kwargs):
     else:
         for l in output_layers:
             if l not in ['conv1', 'layer1', 'layer2', 'layer3', 'layer4', 'fc']:
-                raise ValueError('Unknown layer: {}'.format(l))
+                raise ValueError(f'Unknown layer: {l}')
 
     model = ResNet(BasicBlock, [2, 2, 2, 2], output_layers, **kwargs)
 
@@ -266,7 +263,7 @@ def resnet50(output_layers=None, pretrained=False, **kwargs):
     else:
         for l in output_layers:
             if l not in ['conv1', 'layer1', 'layer2', 'layer3', 'layer4', 'fc']:
-                raise ValueError('Unknown layer: {}'.format(l))
+                raise ValueError(f'Unknown layer: {l}')
 
     model = ResNet(Bottleneck, [3, 4, 6, 3], output_layers, **kwargs)
     if pretrained:
@@ -282,7 +279,7 @@ def resnet101(output_layers=None, pretrained=False, **kwargs):
     else:
         for l in output_layers:
             if l not in ['conv1', 'layer1', 'layer2', 'layer3', 'layer4', 'fc']:
-                raise ValueError('Unknown layer: {}'.format(l))
+                raise ValueError(f'Unknown layer: {l}')
 
 
     model = ResNet(Bottleneck, [3, 4, 23, 3], output_layers, **kwargs)

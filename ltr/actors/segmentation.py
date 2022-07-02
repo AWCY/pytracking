@@ -61,8 +61,6 @@ class LWLActor(BaseActor):
                              num_refinement_iter=self.num_refinement_iter)
 
         acc = 0
-        cnt = 0
-
         segm_pred = segm_pred.view(-1, 1, *segm_pred.shape[-2:])
         gt_segm = data['test_masks']
         gt_segm = gt_segm.view(-1, 1, *gt_segm.shape[-2:])
@@ -72,8 +70,7 @@ class LWLActor(BaseActor):
         acc_l = [davis_jaccard_measure(torch.sigmoid(rm.detach()).cpu().numpy() > 0.5, lb.cpu().numpy()) for
                  rm, lb in zip(segm_pred.view(-1, *segm_pred.shape[-2:]), gt_segm.view(-1, *segm_pred.shape[-2:]))]
         acc += sum(acc_l)
-        cnt += len(acc_l)
-
+        cnt = 0 + len(acc_l)
         loss = loss_segm
 
         if torch.isinf(loss) or torch.isnan(loss):
@@ -123,18 +120,14 @@ class LWLBoxActor(BaseActor):
 
         loss_segm_box = self.loss_weight['segm_box'] * self.objective['segm'](mask_pred_box_train, data['train_masks'].view(mask_pred_box_train.shape))
         loss_segm_box = loss_segm_box / num_train_frames
-        stats = {}
-
         loss = loss_segm_box
 
         acc_box = 0
-        cnt_box = 0
         acc_lbox = [davis_jaccard_measure(torch.sigmoid(rm.detach()).cpu().numpy() > 0.5, lb.cpu().numpy()) for
                  rm, lb in zip(mask_pred_box_train.view(-1, *mask_pred_box_train.shape[-2:]), data['train_masks'].view(-1, *mask_pred_box_train.shape[-2:]))]
         acc_box += sum(acc_lbox)
-        cnt_box += len(acc_lbox)
-
-        stats['Loss/total'] = loss.item()
+        cnt_box = 0 + len(acc_lbox)
+        stats = {'Loss/total': loss.item()}
         stats['Stats/acc_box_train'] = acc_box/cnt_box
 
         return loss, stats

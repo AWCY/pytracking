@@ -13,8 +13,12 @@ class SyntheticVideo(BaseVideoDataset):
             base_image_dataset - Image dataset used for generating synthetic videos
             transform - Set of transforms to be applied to the images to generate synthetic video.
         """
-        super().__init__(base_image_dataset.get_name() + '_syn_vid', base_image_dataset.root,
-                         base_image_dataset.image_loader)
+        super().__init__(
+            f'{base_image_dataset.get_name()}_syn_vid',
+            base_image_dataset.root,
+            base_image_dataset.image_loader,
+        )
+
         self.base_image_dataset = base_image_dataset
         self.transform = transform
 
@@ -56,12 +60,13 @@ class SyntheticVideo(BaseVideoDataset):
         if anno is None:
             anno = self.get_sequence_info(seq_id)
 
-        anno_frames = {}
-        for key, value in anno.items():
-            anno_frames[key] = [value[0].clone() for f_id in frame_ids]
+        anno_frames = {
+            key: [value[0].clone() for _ in frame_ids]
+            for key, value in anno.items()
+        }
 
         if self.transform is not None:
-            if 'mask' in anno_frames.keys():
+            if 'mask' in anno_frames:
                 frame_list, anno_frames['bbox'], anno_frames['mask'] = self.transform(image=frame_list,
                                                                                       bbox=anno_frames['bbox'],
                                                                                       mask=anno_frames['mask'],

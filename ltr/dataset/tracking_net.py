@@ -24,7 +24,7 @@ def list_sequences(root, set_ids):
     sequence_list = []
 
     for s in set_ids:
-        anno_dir = os.path.join(root, "TRAIN_" + str(s), "anno")
+        anno_dir = os.path.join(root, f"TRAIN_{str(s)}", "anno")
 
         sequences_cur_set = [(s, os.path.splitext(f)[0]) for f in os.listdir(anno_dir) if f.endswith('.txt')]
         sequence_list += sequences_cur_set
@@ -57,7 +57,7 @@ class TrackingNet(BaseVideoDataset):
         super().__init__('TrackingNet', root, image_loader)
 
         if set_ids is None:
-            set_ids = [i for i in range(12)]
+            set_ids = list(range(12))
 
         self.set_ids = set_ids
 
@@ -70,9 +70,7 @@ class TrackingNet(BaseVideoDataset):
 
         self.seq_to_class_map, self.seq_per_class = self._load_class_info()
 
-        # we do not have the class_lists for the tracking net
-        self.class_list = list(self.seq_per_class.keys())
-        self.class_list.sort()
+        self.class_list = sorted(self.seq_per_class.keys())
 
     def _load_class_info(self):
         ltr_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
@@ -103,7 +101,10 @@ class TrackingNet(BaseVideoDataset):
     def _read_bb_anno(self, seq_id):
         set_id = self.sequence_list[seq_id][0]
         vid_name = self.sequence_list[seq_id][1]
-        bb_anno_file = os.path.join(self.root, "TRAIN_" + str(set_id), "anno", vid_name + ".txt")
+        bb_anno_file = os.path.join(
+            self.root, f"TRAIN_{str(set_id)}", "anno", vid_name + ".txt"
+        )
+
         gt = pandas.read_csv(bb_anno_file, delimiter=',', header=None, dtype=np.float32, na_filter=False,
                              low_memory=False).values
         return torch.tensor(gt)
@@ -118,7 +119,14 @@ class TrackingNet(BaseVideoDataset):
     def _get_frame(self, seq_id, frame_id):
         set_id = self.sequence_list[seq_id][0]
         vid_name = self.sequence_list[seq_id][1]
-        frame_path = os.path.join(self.root, "TRAIN_" + str(set_id), "frames", vid_name, str(frame_id) + ".jpg")
+        frame_path = os.path.join(
+            self.root,
+            f"TRAIN_{str(set_id)}",
+            "frames",
+            vid_name,
+            f"{str(frame_id)}.jpg",
+        )
+
         return self.image_loader(frame_path)
 
     def _get_class(self, seq_id):
@@ -126,9 +134,7 @@ class TrackingNet(BaseVideoDataset):
         return self.seq_to_class_map[seq_name]
 
     def get_class_name(self, seq_id):
-        obj_class = self._get_class(seq_id)
-
-        return obj_class
+        return self._get_class(seq_id)
 
     def get_frames(self, seq_id, frame_ids, anno=None):
         frame_list = [self._get_frame(seq_id, f) for f in frame_ids]
@@ -136,9 +142,10 @@ class TrackingNet(BaseVideoDataset):
         if anno is None:
             anno = self.get_sequence_info(seq_id)
 
-        anno_frames = {}
-        for key, value in anno.items():
-            anno_frames[key] = [value[f_id, ...].clone() for f_id in frame_ids]
+        anno_frames = {
+            key: [value[f_id, ...].clone() for f_id in frame_ids]
+            for key, value in anno.items()
+        }
 
         obj_class = self._get_class(seq_id)
 

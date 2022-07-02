@@ -48,8 +48,7 @@ class MLRegression(nn.Module):
         exp_val = scores[:, 1:, ...] - torch.log(sample_density[:, 1:, ...] + self.eps)
 
         L = torch.logsumexp(exp_val, dim=mc_dim) - math.log(scores.shape[mc_dim] - 1) - scores[:, 0, ...]
-        loss = L.mean()
-        return loss
+        return L.mean()
 
 
 class KLRegressionGrid(nn.Module):

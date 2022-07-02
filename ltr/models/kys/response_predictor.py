@@ -53,7 +53,7 @@ class ResponsePredictor(nn.Module):
 
         # Init weights
         for m in self.modules():
-            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+            if isinstance(m, (nn.Conv2d, nn.Linear)):
                 nn.init.kaiming_normal_(m.weight.data, mode='fan_in')
                 if m.bias is not None:
                     m.bias.data.zero_()
@@ -70,8 +70,6 @@ class ResponsePredictor(nn.Module):
         # init_label shape: n x 1 x h x w
         if dimp_thresh is None:
             dimp_thresh = self.dimp_thresh
-        auxiliary_outputs = {}
-
         num_sequences = cost_volume.shape[0]
         feat_sz = cost_volume.shape[-2:]
 
@@ -84,8 +82,7 @@ class ResponsePredictor(nn.Module):
         cost_volume_p2 = F.softmax(cost_volume_p2, dim=1)
         cost_volume_p2 = cost_volume_p2.view(num_sequences, -1, 1, feat_sz[0], feat_sz[1])
 
-        auxiliary_outputs['cost_volume_processed'] = cost_volume_p2
-
+        auxiliary_outputs = {'cost_volume_processed': cost_volume_p2}
         if state_prev is None:
             init_hidden_state = self.init_hidden_state_predictor(init_label.view(num_sequences, 1,
                                                                                  feat_sz[0], feat_sz[1]))

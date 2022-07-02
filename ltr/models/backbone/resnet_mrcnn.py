@@ -77,13 +77,12 @@ class ResNet(Backbone):
         out_feature_strides = {'conv1': 4, 'layer1': 4, 'layer2': 4 * stride[0], 'layer3': 4 * stride[0] * stride[1],
                                'layer4': 4 * stride[0] * stride[1] * stride[2]}
 
-        if isinstance(self.layer1[0], Bottleneck):
-            base_num_channels = 4 * inplanes
-            out_feature_channels = {'conv1': inplanes, 'layer1': base_num_channels, 'layer2': base_num_channels * 2,
-                                    'layer3': base_num_channels * 4, 'layer4': base_num_channels * 8}
-        else:
+        if not isinstance(self.layer1[0], Bottleneck):
             raise Exception('block not supported')
 
+        base_num_channels = 4 * inplanes
+        out_feature_channels = {'conv1': inplanes, 'layer1': base_num_channels, 'layer2': base_num_channels * 2,
+                                'layer3': base_num_channels * 4, 'layer4': base_num_channels * 8}
         self._out_feature_strides = out_feature_strides
         self._out_feature_channels = out_feature_channels
 
@@ -124,12 +123,19 @@ class ResNet(Backbone):
 
         # Change! Stride
         stride_1x1, stride_3x3 = (stride, 1) if stride_in_1x1 else (1, stride)
-        layers = []
-        layers.append(block(self.inplanes, planes, stride_1x1, stride_3x3, downsample, dilation=dilation))
-        self.inplanes = planes * block.expansion
-        for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
+        layers = [
+            block(
+                self.inplanes,
+                planes,
+                stride_1x1,
+                stride_3x3,
+                downsample,
+                dilation=dilation,
+            )
+        ]
 
+        self.inplanes = planes * block.expansion
+        layers.extend(block(self.inplanes, planes) for _ in range(1, blocks))
         return nn.Sequential(*layers)
 
     def _add_output_and_check(self, name, x, outputs, output_layers):
@@ -195,7 +201,7 @@ def resnet50(output_layers=None, pretrained=False, weights_path=None, **kwargs):
     else:
         for l in output_layers:
             if l not in ['conv1', 'layer1', 'layer2', 'layer3', 'layer4']:
-                raise ValueError('Unknown layer: {}'.format(l))
+                raise ValueError(f'Unknown layer: {l}')
 
     model = ResNet(Bottleneck, [3, 4, 6, 3], output_layers, **kwargs)
 
@@ -214,7 +220,7 @@ def resnet101(output_layers=None, pretrained=False, weights_path=None, **kwargs)
     else:
         for l in output_layers:
             if l not in ['conv1', 'layer1', 'layer2', 'layer3', 'layer4']:
-                raise ValueError('Unknown layer: {}'.format(l))
+                raise ValueError(f'Unknown layer: {l}')
 
     model = ResNet(Bottleneck, [3, 4, 23, 3], output_layers, **kwargs)
 
