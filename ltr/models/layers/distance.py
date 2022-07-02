@@ -33,9 +33,12 @@ class DistanceMap(nn.Module):
         dist = torch.sqrt(d0*d0 + d1*d1)
         bin_diff = dist / self.bin_displacement - bin_centers
 
-        bin_val = torch.cat((F.relu(1.0 - torch.abs(bin_diff[:,:-1,:,:]), inplace=True),
-                             (1.0 + bin_diff[:,-1:,:,:]).clamp(0, 1)), dim=1)
-
-        return bin_val
+        return torch.cat(
+            (
+                F.relu(1.0 - torch.abs(bin_diff[:, :-1, :, :]), inplace=True),
+                (1.0 + bin_diff[:, -1:, :, :]).clamp(0, 1),
+            ),
+            dim=1,
+        )
 
 

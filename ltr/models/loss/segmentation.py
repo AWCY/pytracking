@@ -46,15 +46,17 @@ def one_hot(labels: torch.Tensor,
                   [1., 0.]]]]
     """
     if not torch.is_tensor(labels):
-        raise TypeError("Input labels type is not a torch.Tensor. Got {}"
-                        .format(type(labels)))
-    if not labels.dtype == torch.int64:
+        raise TypeError(f"Input labels type is not a torch.Tensor. Got {type(labels)}")
+    if labels.dtype != torch.int64:
         raise ValueError(
-            "labels must be of the same dtype torch.int64. Got: {}" .format(
-                labels.dtype))
+            f"labels must be of the same dtype torch.int64. Got: {labels.dtype}"
+        )
+
     if num_classes < 1:
-        raise ValueError("The number of classes must be bigger than one."
-                         " Got: {}".format(num_classes))
+        raise ValueError(
+            f"The number of classes must be bigger than one. Got: {num_classes}"
+        )
+
     shape = labels.shape
     one_hot = torch.zeros((shape[0], num_classes, shape[1], shape[2])).to(device)
     return one_hot.scatter_(1, labels.unsqueeze(1), 1.0) + eps

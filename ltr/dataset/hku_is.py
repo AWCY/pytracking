@@ -45,10 +45,10 @@ class HKUIS(BaseImageDataset):
         annos = []
 
         for f in image_list:
-            a = imread_indexed(os.path.join(self.root, 'gt', '{}.png'.format(f)))
+            a = imread_indexed(os.path.join(self.root, 'gt', f'{f}.png'))
 
             if min_area is None or (a > 0).sum() > min_area:
-                im = opencv_loader(os.path.join(self.root, 'imgs', '{}.png'.format(f)))
+                im = opencv_loader(os.path.join(self.root, 'imgs', f'{f}.png'))
                 images.append(im)
                 annos.append(a)
 
@@ -71,13 +71,15 @@ class HKUIS(BaseImageDataset):
         return {'bbox': bbox, 'mask': mask, 'valid': valid, 'visible': visible}
 
     def get_meta_info(self, im_id):
-        object_meta = OrderedDict({'object_class_name': None,
-                                   'motion_class': None,
-                                   'major_class': None,
-                                   'root_class': None,
-                                   'motion_adverb': None})
-
-        return object_meta
+        return OrderedDict(
+            {
+                'object_class_name': None,
+                'motion_class': None,
+                'major_class': None,
+                'root_class': None,
+                'motion_adverb': None,
+            }
+        )
 
     def get_image(self, image_id, anno=None):
         frame = self.image_list[image_id]

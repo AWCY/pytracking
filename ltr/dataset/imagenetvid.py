@@ -89,9 +89,10 @@ class ImagenetVID(BaseVideoDataset):
             anno = self.get_sequence_info(seq_id)
 
         # Create anno dict
-        anno_frames = {}
-        for key, value in anno.items():
-            anno_frames[key] = [value[f_id, ...].clone() for f_id in frame_ids]
+        anno_frames = {
+            key: [value[f_id, ...].clone() for f_id in frame_ids]
+            for key, value in anno.items()
+        }
 
         # added the class info to the meta info
         object_meta = OrderedDict({'object_class': sequence['class_name'],

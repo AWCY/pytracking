@@ -78,7 +78,7 @@ class TrackingSampler(torch.utils.data.Dataset):
         valid_ids = [i for i in range(min_id, max_id) if visible[i]]
 
         # No visible ids
-        if len(valid_ids) == 0:
+        if not valid_ids:
             return None
 
         return random.choices(valid_ids, k=num_ids)
@@ -260,7 +260,7 @@ class LWLSampler(torch.utils.data.Dataset):
         valid_ids = [i for i in range(min_id, max_id) if visible[i]]
 
         # No visible ids
-        if len(valid_ids) == 0:
+        if not valid_ids:
             return None
 
         return random.choices(valid_ids, k=num_ids)
@@ -321,8 +321,6 @@ class LWLSampler(torch.utils.data.Dataset):
                                                               max_id=train_frame_ids[0] + self.max_gap + gap_increase,
                                                               num_ids=self.num_test_frames)
 
-                    # Increase gap until a frame is found
-                    gap_increase += 5
                 else:
                     # Sample in reverse order, i.e. train frames come after the test frames
                     base_frame_id = self._sample_visible_ids(visible, num_ids=1, min_id=self.num_test_frames + 1,
@@ -338,8 +336,8 @@ class LWLSampler(torch.utils.data.Dataset):
                                                               max_id=train_frame_ids[0] - 1,
                                                               num_ids=self.num_test_frames)
 
-                    # Increase gap until a frame is found
-                    gap_increase += 5
+                # Increase gap until a frame is found
+                gap_increase += 5
         else:
             # In case of image dataset, just repeat the image to generate synthetic video
             train_frame_ids = [1]*self.num_train_frames
@@ -363,8 +361,8 @@ class LWLSampler(torch.utils.data.Dataset):
             train_anno[key] = value[:len(train_frame_ids)]
             test_anno[key] = value[len(train_frame_ids):]
 
-        train_masks = train_anno['mask'] if 'mask' in train_anno else None
-        test_masks = test_anno['mask'] if 'mask' in test_anno else None
+        train_masks = train_anno.get('mask')
+        test_masks = test_anno.get('mask')
 
         data = TensorDict({'train_images': train_frames,
                            'train_masks': train_masks,
@@ -395,7 +393,7 @@ class KYSSampler(torch.utils.data.Dataset):
 
         # If p not provided, sample uniformly from all videos
         if p_datasets is None:
-            p_datasets = [1 for d in self.datasets]
+            p_datasets = [1 for _ in self.datasets]
 
         # Normalize
         p_total = sum(p_datasets)
@@ -430,17 +428,20 @@ class KYSSampler(torch.utils.data.Dataset):
         valid_ids = [i for i in range(min_id, max_id) if valid[i]]
 
         # No visible ids
-        if len(valid_ids) == 0:
+        if not valid_ids:
             return None
 
         return random.choices(valid_ids, k=num_ids)
 
     def find_occlusion_end_frame(self, first_occ_frame, target_not_fully_visible):
-        for i in range(first_occ_frame, len(target_not_fully_visible)):
-            if not target_not_fully_visible[i]:
-                return i
-
-        return len(target_not_fully_visible)
+        return next(
+            (
+                i
+                for i in range(first_occ_frame, len(target_not_fully_visible))
+                if not target_not_fully_visible[i]
+            ),
+            len(target_not_fully_visible),
+        )
 
     def __getitem__(self, index):
         """
@@ -484,93 +485,81 @@ class KYSSampler(torch.utils.data.Dataset):
 
             valid_sequence = enough_visible_frames
 
-        if self.sequence_sample_info['mode'] == 'Sequence':
-            if is_video_dataset:
-                train_frame_ids = None
-                test_frame_ids = None
-                gap_increase = 0
-
-                test_valid_image = torch.zeros(num_test_frames, dtype=torch.int8)
-                # Sample frame numbers in a causal manner, i.e. test_frame_ids > train_frame_ids
-                while test_frame_ids is None:
-                    occlusion_sampling = False
-                    if dataset.has_occlusion_info() and self.sample_occluded_sequences:
-                        target_not_fully_visible = visible_ratio < 0.9
-                        if target_not_fully_visible.float().sum() > 0:
-                            occlusion_sampling = True
-
-                    if occlusion_sampling:
-                        first_occ_frame = target_not_fully_visible.nonzero()[0]
-
-                        occ_end_frame = self.find_occlusion_end_frame(first_occ_frame, target_not_fully_visible)
-
-                        # Make sure target visible in first frame
-                        base_frame_id = self._sample_ids(visible, num_ids=1, min_id=max(0, first_occ_frame - 20),
-                                                         max_id=first_occ_frame - 5)
-
-                        if base_frame_id is None:
-                            base_frame_id = 0
-                        else:
-                            base_frame_id = base_frame_id[0]
-
-                        prev_frame_ids = self._sample_ids(visible, num_ids=num_train_frames,
-                                                          min_id=base_frame_id - max_train_gap - gap_increase - 1,
-                                                          max_id=base_frame_id - 1)
-
-                        if prev_frame_ids is None:
-                            if base_frame_id - max_train_gap - gap_increase - 1 < 0:
-                                prev_frame_ids = [base_frame_id] * num_train_frames
-                            else:
-                                gap_increase += 5
-                                continue
-
-                        train_frame_ids = prev_frame_ids
-
-                        end_frame = min(occ_end_frame + random.randint(5, 20), len(visible) - 1)
-
-                        if (end_frame - base_frame_id) < num_test_frames:
-                            rem_frames = num_test_frames - (end_frame - base_frame_id)
-                            end_frame = random.randint(end_frame, min(len(visible) - 1, end_frame + rem_frames))
-                            base_frame_id = max(0, end_frame - num_test_frames + 1)
-
-                            end_frame = min(end_frame, len(visible) - 1)
-
-                        step_len = float(end_frame - base_frame_id) / float(num_test_frames)
-
-                        test_frame_ids = [base_frame_id + int(x * step_len) for x in range(0, num_test_frames)]
-                        test_valid_image[:len(test_frame_ids)] = 1
-
-                        test_frame_ids = test_frame_ids + [0] * (num_test_frames - len(test_frame_ids))
-                    else:
-                        # Make sure target visible in first frame
-                        base_frame_id = self._sample_ids(visible, num_ids=1, min_id=2*num_train_frames,
-                                                         max_id=len(visible) - int(num_test_frames * min_fraction_valid_frames))
-                        if base_frame_id is None:
-                            base_frame_id = 0
-                        else:
-                            base_frame_id = base_frame_id[0]
-
-                        prev_frame_ids = self._sample_ids(visible, num_ids=num_train_frames,
-                                                          min_id=base_frame_id - max_train_gap - gap_increase - 1,
-                                                          max_id=base_frame_id - 1)
-                        if prev_frame_ids is None:
-                            if base_frame_id - max_train_gap - gap_increase - 1 < 0:
-                                prev_frame_ids = [base_frame_id] * num_train_frames
-                            else:
-                                gap_increase += 5
-                                continue
-
-                        train_frame_ids = prev_frame_ids
-
-                        test_frame_ids = list(range(base_frame_id, min(len(visible), base_frame_id + num_test_frames)))
-                        test_valid_image[:len(test_frame_ids)] = 1
-
-                        test_frame_ids = test_frame_ids + [0]*(num_test_frames - len(test_frame_ids))
-            else:
-                raise NotImplementedError
-        else:
+        if self.sequence_sample_info['mode'] != 'Sequence' or not is_video_dataset:
             raise NotImplementedError
+        train_frame_ids = None
+        test_frame_ids = None
+        gap_increase = 0
 
+        test_valid_image = torch.zeros(num_test_frames, dtype=torch.int8)
+                # Sample frame numbers in a causal manner, i.e. test_frame_ids > train_frame_ids
+        while test_frame_ids is None:
+            occlusion_sampling = False
+            if dataset.has_occlusion_info() and self.sample_occluded_sequences:
+                target_not_fully_visible = visible_ratio < 0.9
+                if target_not_fully_visible.float().sum() > 0:
+                    occlusion_sampling = True
+
+            if occlusion_sampling:
+                first_occ_frame = target_not_fully_visible.nonzero()[0]
+
+                occ_end_frame = self.find_occlusion_end_frame(first_occ_frame, target_not_fully_visible)
+
+                # Make sure target visible in first frame
+                base_frame_id = self._sample_ids(visible, num_ids=1, min_id=max(0, first_occ_frame - 20),
+                                                 max_id=first_occ_frame - 5)
+
+                base_frame_id = 0 if base_frame_id is None else base_frame_id[0]
+                prev_frame_ids = self._sample_ids(visible, num_ids=num_train_frames,
+                                                  min_id=base_frame_id - max_train_gap - gap_increase - 1,
+                                                  max_id=base_frame_id - 1)
+
+                if prev_frame_ids is None:
+                    if base_frame_id - max_train_gap - gap_increase < 1:
+                        prev_frame_ids = [base_frame_id] * num_train_frames
+                    else:
+                        gap_increase += 5
+                        continue
+
+                train_frame_ids = prev_frame_ids
+
+                end_frame = min(occ_end_frame + random.randint(5, 20), len(visible) - 1)
+
+                if (end_frame - base_frame_id) < num_test_frames:
+                    rem_frames = num_test_frames - (end_frame - base_frame_id)
+                    end_frame = random.randint(end_frame, min(len(visible) - 1, end_frame + rem_frames))
+                    base_frame_id = max(0, end_frame - num_test_frames + 1)
+
+                    end_frame = min(end_frame, len(visible) - 1)
+
+                step_len = float(end_frame - base_frame_id) / float(num_test_frames)
+
+                test_frame_ids = [
+                    base_frame_id + int(x * step_len)
+                    for x in range(num_test_frames)
+                ]
+
+            else:
+                # Make sure target visible in first frame
+                base_frame_id = self._sample_ids(visible, num_ids=1, min_id=2*num_train_frames,
+                                                 max_id=len(visible) - int(num_test_frames * min_fraction_valid_frames))
+                base_frame_id = 0 if base_frame_id is None else base_frame_id[0]
+                prev_frame_ids = self._sample_ids(visible, num_ids=num_train_frames,
+                                                  min_id=base_frame_id - max_train_gap - gap_increase - 1,
+                                                  max_id=base_frame_id - 1)
+                if prev_frame_ids is None:
+                    if base_frame_id - max_train_gap - gap_increase < 1:
+                        prev_frame_ids = [base_frame_id] * num_train_frames
+                    else:
+                        gap_increase += 5
+                        continue
+
+                train_frame_ids = prev_frame_ids
+
+                test_frame_ids = list(range(base_frame_id, min(len(visible), base_frame_id + num_test_frames)))
+            test_valid_image[:len(test_frame_ids)] = 1
+
+            test_frame_ids += [0] * (num_test_frames - len(test_frame_ids))
         # Get frames
         train_frames, train_anno_dict, _ = dataset.get_frames(seq_id, train_frame_ids, seq_info_dict)
         train_anno = train_anno_dict['bbox']
@@ -674,7 +663,7 @@ class SequentialTargetCandidateMatchingSampler(torch.utils.data.Dataset):
         valid_ids = [i for i in range(min_id, max_id) if visible[i]]
 
         # No visible ids
-        if len(valid_ids) == 0:
+        if not valid_ids:
             return None
 
         num_begin = num_ids//2
@@ -714,7 +703,7 @@ class SequentialTargetCandidateMatchingSampler(torch.utils.data.Dataset):
             baseframe_id = state[1].item()
             test_frame_ids = [baseframe_id, baseframe_id + 1]
         else:
-            raise ValueError('Supervision mode: \'{}\' is invalid.'.format(sup_mode))
+            raise ValueError(f"Supervision mode: \'{sup_mode}\' is invalid.")
 
 
         seq_info_dict = self.dataset.get_sequence_info(seq_id)

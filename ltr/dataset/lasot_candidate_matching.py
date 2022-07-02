@@ -35,7 +35,7 @@ class LasotCandidateMatching(BaseVideoDataset):
         self.sequence_info_cache = {}
 
         # Keep a list of all classes
-        self.class_list = [f for f in os.listdir(self.root)]
+        self.class_list = list(os.listdir(self.root))
         self.class_to_id = {cls_name: cls_id for cls_id, cls_name in enumerate(self.class_list)}
 
         self.sequence_list = self._build_sequence_list(vid_ids, split)
@@ -63,7 +63,7 @@ class LasotCandidateMatching(BaseVideoDataset):
                     data = torch.cat([seq_ids, frame_state_indices], dim=1)
                     frame_states_all[frame_state_name].append(data)
 
-        for state_name in frame_states_all.keys():
+        for state_name in frame_states_all:
             frame_states_all[state_name] = torch.cat(frame_states_all[state_name], dim=0)
 
         return frame_states_all
@@ -79,7 +79,7 @@ class LasotCandidateMatching(BaseVideoDataset):
                     data = torch.cat([seq_ids, subseq_state_indices], dim=1)
                     subseq_states_all[subseq_state_name].append(data)
 
-        for state_name in subseq_states_all.keys():
+        for state_name in subseq_states_all:
             subseq_states_all[state_name] = torch.cat(subseq_states_all[state_name], dim=0)
 
         return subseq_states_all
@@ -151,9 +151,7 @@ class LasotCandidateMatching(BaseVideoDataset):
         with open(out_of_view_file, 'r') as f:
             out_of_view = torch.ByteTensor([int(v) for v in list(csv.reader(f))[0]])
 
-        target_visible = ~occlusion & ~out_of_view
-
-        return target_visible
+        return ~occlusion & ~out_of_view
 
     def _get_sequence_path(self, root, seq_id):
         seq_name = self.sequence_list[seq_id]
@@ -181,8 +179,7 @@ class LasotCandidateMatching(BaseVideoDataset):
         return self.image_loader(self._get_frame_path(seq_path, frame_id))
 
     def _get_class(self, seq_path):
-        raw_class = seq_path.split('/')[-2]
-        return raw_class
+        return seq_path.split('/')[-2]
 
     def _get_data(self, seq_id, seq_img_path, frame_id):
         data = self.dataset[self.get_sequence_name(seq_id)]
@@ -201,16 +198,12 @@ class LasotCandidateMatching(BaseVideoDataset):
 
     def get_class_name(self, seq_id):
         seq_path = self._get_sequence_path(self.root, seq_id)
-        obj_class = self._get_class(seq_path)
-
-        return obj_class
+        return self._get_class(seq_path)
 
     def get_sequence_name(self, seq_id):
         return self.sequence_list[seq_id]
 
     def get_frames(self, seq_id, frame_ids, anno=None):
-        frames_dict = dict()
-
         if anno is None:
             anno = self.get_sequence_info(seq_id)
 
@@ -220,8 +213,10 @@ class LasotCandidateMatching(BaseVideoDataset):
 
         dumped_data_frame_list = [self._get_data(seq_id, seq_path_img, f_id) for f_id in frame_ids]
 
-        for key in dumped_data_frame_list[0].keys():
-            frames_dict[key] = [data[key] for data in dumped_data_frame_list] # is cloning needed here?
+        frames_dict = {
+            key: [data[key] for data in dumped_data_frame_list]
+            for key in dumped_data_frame_list[0].keys()
+        }
 
         for key, value in anno.items():
             frames_dict[key] = [value[f_id, ...].clone() for f_id in frame_ids]

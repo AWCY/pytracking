@@ -59,8 +59,7 @@ class TransformerEncoderInstance(nn.Module):
                 nn.init.xavier_uniform_(p)
 
     def forward(self, src, mask, pos_embed):
-        memory = self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)
-        return memory
+        return self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)
 
 
 class Transformer(nn.Module):
@@ -263,7 +262,7 @@ class TransformerDecoderLayer(nn.Module):
 
 
 def _get_clones(module, N):
-    return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
+    return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
 
 
 def build_transformer(args):

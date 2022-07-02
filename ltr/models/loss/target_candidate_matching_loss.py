@@ -32,8 +32,6 @@ class TargetCandidateMatchingLoss(nn.Module):
         gt_matches0 = gt_matches0[0]
         gt_matches1 = gt_matches1[0]
 
-        losses = {'total': 0}
-
         positive = gt_assignment.float()
         neg0 = (gt_matches0 == -1).float()
         neg1 = (gt_matches1 == -1).float()
@@ -50,8 +48,7 @@ class TargetCandidateMatchingLoss(nn.Module):
 
         nll = (self.nll_balancing * nll_pos + (1 - self.nll_balancing) * nll_neg)
 
-        losses['assignment_nll'] = nll
-
+        losses = {'total': 0, 'assignment_nll': nll}
         if self.nll_weight > 0:
             losses['total'] = nll * self.nll_weight
 

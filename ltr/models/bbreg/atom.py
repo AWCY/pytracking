@@ -38,14 +38,15 @@ class ATOMnet(nn.Module):
         train_feat = self.extract_backbone_features(train_imgs.reshape(-1, *train_imgs.shape[-3:]))
         test_feat = self.extract_backbone_features(test_imgs.reshape(-1, *test_imgs.shape[-3:]))
 
-        train_feat_iou = [feat for feat in train_feat.values()]
-        test_feat_iou = [feat for feat in test_feat.values()]
+        train_feat_iou = list(train_feat.values())
+        test_feat_iou = list(test_feat.values())
 
-        # Obtain iou prediction
-        iou_pred = self.bb_regressor(train_feat_iou, test_feat_iou,
-                                     train_bb.reshape(num_train_images, num_sequences, 4),
-                                     test_proposals.reshape(num_train_images, num_sequences, -1, 4))
-        return iou_pred
+        return self.bb_regressor(
+            train_feat_iou,
+            test_feat_iou,
+            train_bb.reshape(num_train_images, num_sequences, 4),
+            test_proposals.reshape(num_train_images, num_sequences, -1, 4),
+        )
 
     def extract_backbone_features(self, im, layers=None):
         if layers is None:
@@ -65,10 +66,12 @@ def atom_resnet18(iou_input_dim=(256,256), iou_inter_dim=(256,256), backbone_pre
     # Bounding box regressor
     iou_predictor = bbmodels.AtomIoUNet(pred_input_dim=iou_input_dim, pred_inter_dim=iou_inter_dim)
 
-    net = ATOMnet(feature_extractor=backbone_net, bb_regressor=iou_predictor, bb_regressor_layer=['layer2', 'layer3'],
-                  extractor_grad=False)
-
-    return net
+    return ATOMnet(
+        feature_extractor=backbone_net,
+        bb_regressor=iou_predictor,
+        bb_regressor_layer=['layer2', 'layer3'],
+        extractor_grad=False,
+    )
 
 
 @model_constructor
@@ -79,7 +82,9 @@ def atom_resnet50(iou_input_dim=(256,256), iou_inter_dim=(256,256), backbone_pre
     # Bounding box regressor
     iou_predictor = bbmodels.AtomIoUNet(input_dim=(4*128,4*256), pred_input_dim=iou_input_dim, pred_inter_dim=iou_inter_dim)
 
-    net = ATOMnet(feature_extractor=backbone_net, bb_regressor=iou_predictor, bb_regressor_layer=['layer2', 'layer3'],
-                  extractor_grad=False)
-
-    return net
+    return ATOMnet(
+        feature_extractor=backbone_net,
+        bb_regressor=iou_predictor,
+        bb_regressor_layer=['layer2', 'layer3'],
+        extractor_grad=False,
+    )

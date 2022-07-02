@@ -204,8 +204,7 @@ class DiMPL2SteepestDescentGN(nn.Module):
         k1 = torch.arange(output_sz[1], dtype=torch.float32).reshape(1, 1, 1, -1).to(center.device)
         g0 = torch.exp(-1.0 / (2 * self.gauss_sigma ** 2) * (k0 - center[:,:,0].reshape(*center.shape[:2], 1, 1)) ** 2)
         g1 = torch.exp(-1.0 / (2 * self.gauss_sigma ** 2) * (k1 - center[:,:,1].reshape(*center.shape[:2], 1, 1)) ** 2)
-        gauss = g0 * g1
-        return gauss
+        return g0 * g1
 
 
     def forward(self, weights, feat, bb, sample_weight=None, num_iter=None, compute_losses=True):
@@ -349,8 +348,10 @@ class PrDiMPSteepestDescentNewton(nn.Module):
         gauss = gauss * (gauss > self.label_threshold).float()
         if self.normalize_label:
             gauss /= (gauss.sum(dim=(-2,-1), keepdim=True) + 1e-8)
-        label_dens = (1.0 - self.label_shrink)*((1.0 - self.uni_weight) * gauss + self.uni_weight / (output_sz[0]*output_sz[1]))
-        return label_dens
+        return (1.0 - self.label_shrink) * (
+            (1.0 - self.uni_weight) * gauss
+            + self.uni_weight / (output_sz[0] * output_sz[1])
+        )
 
     def forward(self, weights, feat, bb, sample_weight=None, num_iter=None, compute_losses=True):
         """Runs the optimizer module.

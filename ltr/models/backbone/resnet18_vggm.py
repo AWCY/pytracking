@@ -26,11 +26,10 @@ class SpatialCrossMapLRN(nn.Module):
         if self.ACROSS_CHANNELS:
             div = x.pow(2).unsqueeze(1)
             div = self.average(div).squeeze(1)
-            div = div.mul(self.alpha).add(self.k).pow(self.beta)
         else:
             div = x.pow(2)
             div = self.average(div)
-            div = div.mul(self.alpha).add(self.k).pow(self.beta)
+        div = div.mul(self.alpha).add(self.k).pow(self.beta)
         x = x.div(div)
         return x
 
@@ -73,12 +72,9 @@ class ResNetVGGm1(Backbone):
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers = [block(self.inplanes, planes, stride, downsample)]
         self.inplanes = planes * block.expansion
-        for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
-
+        layers.extend(block(self.inplanes, planes) for _ in range(1, blocks))
         return nn.Sequential(*layers)
 
 
@@ -150,7 +146,7 @@ def resnet18_vggmconv1(output_layers=None, path=None, **kwargs):
     else:
         for l in output_layers:
             if l not in ['vggconv1', 'conv1', 'layer1', 'layer2', 'layer3', 'layer4', 'fc']:
-                raise ValueError('Unknown layer: {}'.format(l))
+                raise ValueError(f'Unknown layer: {l}')
 
     model = ResNetVGGm1(BasicBlock, [2, 2, 2, 2], output_layers, **kwargs)
 

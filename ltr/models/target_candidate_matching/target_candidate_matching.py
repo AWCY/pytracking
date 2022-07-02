@@ -70,9 +70,7 @@ class TargetCandidateMatchingNetwork(nn.Module):
             'image_size1': img_shape1[0],
         }
 
-        pred = self.matcher(data)
-
-        return pred
+        return self.matcher(data)
 
     def extract_backbone_features(self, im, layers=None):
         if layers is None:
@@ -108,7 +106,9 @@ def target_candidate_matching_net_resnet50(backbone_pretrained=True, classificat
 
     matcher = SuperGlue(conf=conf)
 
-    net = TargetCandidateMatchingNetwork(feature_extractor=backbone_net, classification_layer=classification_layer,
-                                         descriptor_extractor=descriptor_extractor, matcher=matcher)
-
-    return net
+    return TargetCandidateMatchingNetwork(
+        feature_extractor=backbone_net,
+        classification_layer=classification_layer,
+        descriptor_extractor=descriptor_extractor,
+        matcher=matcher,
+    )

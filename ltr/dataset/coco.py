@@ -47,8 +47,11 @@ class MSCOCO(BaseImageDataset):
         root = env_settings().coco_dir if root is None else root
         super().__init__('COCO', root, image_loader)
 
-        self.img_pth = os.path.join(root, 'images/{}{}/'.format(split, version))
-        self.anno_path = os.path.join(root, 'annotations/instances_{}{}.json'.format(split, version))
+        self.img_pth = os.path.join(root, f'images/{split}{version}/')
+        self.anno_path = os.path.join(
+            root, f'annotations/instances_{split}{version}.json'
+        )
+
 
         self.coco_set = COCO(self.anno_path)
 
@@ -84,10 +87,7 @@ class MSCOCO(BaseImageDataset):
         return True
 
     def get_class_list(self):
-        class_list = []
-        for cat_id in self.cats.keys():
-            class_list.append(self.cats[cat_id]['name'])
-        return class_list
+        return [self.cats[cat_id]['name'] for cat_id in self.cats.keys()]
 
     def _build_im_per_class(self):
         im_per_class = {}
@@ -116,14 +116,11 @@ class MSCOCO(BaseImageDataset):
         return {'bbox': bbox, 'mask': mask, 'valid': valid, 'visible': visible}
 
     def _get_anno(self, im_id):
-        anno = self.coco_set.anns[self.image_list[im_id]]
-
-        return anno
+        return self.coco_set.anns[self.image_list[im_id]]
 
     def _get_image(self, im_id):
         path = self.coco_set.loadImgs([self.coco_set.anns[self.image_list[im_id]]['image_id']])[0]['file_name']
-        img = self.image_loader(os.path.join(self.img_pth, path))
-        return img
+        return self.image_loader(os.path.join(self.img_pth, path))
 
     def get_meta_info(self, im_id):
         try:

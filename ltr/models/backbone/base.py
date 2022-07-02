@@ -14,7 +14,10 @@ class Backbone(nn.Module):
             if frozen_layers.lower() == 'none':
                 frozen_layers = ()
             elif frozen_layers.lower() != 'all':
-                raise ValueError('Unknown option for frozen layers: \"{}\". Should be \"all\", \"none\" or list of layer names.'.format(frozen_layers))
+                raise ValueError(
+                    f'Unknown option for frozen layers: \"{frozen_layers}\". Should be \"all\", \"none\" or list of layer names.'
+                )
+
 
         self.frozen_layers = frozen_layers
         self._is_frozen_nograd = False

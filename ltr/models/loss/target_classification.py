@@ -45,10 +45,7 @@ class LBHingev2(nn.Module):
         super().__init__()
 
         if error_metric is None:
-            if return_per_sequence:
-                reduction = 'none'
-            else:
-                reduction = 'mean'
+            reduction = 'none' if return_per_sequence else 'mean'
             error_metric = nn.MSELoss(reduction=reduction)
 
         self.error_metric = error_metric

@@ -60,10 +60,7 @@ class LinearFilter(nn.Module):
         # Train filter
         filter, filter_iter, losses = self.get_filter(train_feat, train_bb, *args, **kwargs)
 
-        # Classify samples using all return filters
-        test_scores = [self.classify(f, test_feat) for f in filter_iter]
-
-        return test_scores
+        return [self.classify(f, test_feat) for f in filter_iter]
 
     def extract_classification_feat(self, feat, num_sequences=None):
         """Extract classification features based on the input backbone features."""
@@ -78,9 +75,7 @@ class LinearFilter(nn.Module):
     def classify(self, weights, feat):
         """Run classifier (filter) on the features (feat)."""
 
-        scores = filter_layer.apply_filter(feat, weights)
-
-        return scores
+        return filter_layer.apply_filter(feat, weights)
 
     def get_filter(self, feat, bb, *args, **kwargs):
         """Outputs the learned filter based on the input features (feat) and target boxes (bb) by running the
@@ -126,6 +121,4 @@ class LinearFilter(nn.Module):
 
         test_feat = self.extract_classification_feat(backbone_feat, num_sequences)
 
-        scores = filter_layer.apply_filter(test_feat, filter_weights)
-
-        return scores
+        return filter_layer.apply_filter(test_feat, filter_weights)

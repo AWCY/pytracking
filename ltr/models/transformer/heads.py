@@ -4,12 +4,18 @@ import ltr.models.layers.filter as filter_layer
 
 
 def conv_layer(inplanes, outplanes, kernel_size=3, stride=1, padding=1, dilation=1):
-    layers = [
-        nn.Conv2d(inplanes, outplanes, kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation),
+    return [
+        nn.Conv2d(
+            inplanes,
+            outplanes,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding,
+            dilation=dilation,
+        ),
         nn.GroupNorm(1, outplanes),
         nn.ReLU(inplace=True),
     ]
-    return layers
 
 
 class Head(nn.Module):
@@ -127,5 +133,4 @@ class DenseBoxRegressor(nn.Module):
 
         feats_tower = self.tower(feats_att.reshape(-1, self.num_channels, feat.shape[-2], feat.shape[-1])) # (nf*ns, c, h, w)
 
-        ltrb = torch.exp(self.bbreg_layer(feats_tower)).unsqueeze(0) # (nf*ns, 4, h, w)
-        return ltrb
+        return torch.exp(self.bbreg_layer(feats_tower)).unsqueeze(0)

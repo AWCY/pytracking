@@ -44,7 +44,7 @@ class MSRA10k(BaseImageDataset):
         images = []
 
         for f in image_list:
-            a = imread_indexed(os.path.join(self.root, 'Imgs', '{}.png'.format(f)))
+            a = imread_indexed(os.path.join(self.root, 'Imgs', f'{f}.png'))
 
             if min_area is None or (a > 0).sum() > min_area:
                 images.append(f)
@@ -58,7 +58,10 @@ class MSRA10k(BaseImageDataset):
         return True
 
     def get_image_info(self, im_id):
-        mask = imread_indexed(os.path.join(self.root, 'Imgs', '{}.png'.format(self.image_list[im_id])))
+        mask = imread_indexed(
+            os.path.join(self.root, 'Imgs', f'{self.image_list[im_id]}.png')
+        )
+
         mask = torch.Tensor(mask == 255)
         bbox = masks_to_bboxes(mask, fmt='t').view(4,)
 
@@ -68,16 +71,21 @@ class MSRA10k(BaseImageDataset):
         return {'bbox': bbox, 'mask': mask, 'valid': valid, 'visible': visible}
 
     def get_meta_info(self, im_id):
-        object_meta = OrderedDict({'object_class_name': None,
-                                   'motion_class': None,
-                                   'major_class': None,
-                                   'root_class': None,
-                                   'motion_adverb': None})
-
-        return object_meta
+        return OrderedDict(
+            {
+                'object_class_name': None,
+                'motion_class': None,
+                'major_class': None,
+                'root_class': None,
+                'motion_adverb': None,
+            }
+        )
 
     def get_image(self, image_id, anno=None):
-        frame = self.image_loader(os.path.join(self.root, 'Imgs', '{}.jpg'.format(self.image_list[image_id])))
+        frame = self.image_loader(
+            os.path.join(self.root, 'Imgs', f'{self.image_list[image_id]}.jpg')
+        )
+
 
         if anno is None:
             anno = self.get_image_info(image_id)

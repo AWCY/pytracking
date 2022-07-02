@@ -10,7 +10,7 @@ import ltr.admin.settings as ws_settings
 def load_trained_network(workspace_dir, network_path, checkpoint=None):
     """OUTDATED. Use load_pretrained instead!"""
     checkpoint_dir = os.path.join(workspace_dir, 'checkpoints')
-    directory = '{}/{}'.format(checkpoint_dir, network_path)
+    directory = f'{checkpoint_dir}/{network_path}'
 
     net, _ = load_network(directory, checkpoint)
     return net
@@ -45,18 +45,12 @@ def load_network(network_dir=None, checkpoint=None, constructor_fun_name=None, c
     The extra keyword arguments are supplied to the network constructor to replace saved ones.
     """
 
-    if network_dir is not None:
-        net_path = Path(network_dir)
-    else:
-        net_path = None
-
+    net_path = Path(network_dir) if network_dir is not None else None
     if net_path is not None and net_path.is_file():
         checkpoint = str(net_path)
 
     if checkpoint is None:
-        # Load most recent checkpoint
-        checkpoint_list = sorted(net_path.glob('*.pth.tar'))
-        if checkpoint_list:
+        if checkpoint_list := sorted(net_path.glob('*.pth.tar')):
             checkpoint_path = checkpoint_list[-1]
         else:
             raise Exception('No matching checkpoint file found')
@@ -78,27 +72,31 @@ def load_network(network_dir=None, checkpoint=None, constructor_fun_name=None, c
     # Load network
     checkpoint_dict = torch_load_legacy(checkpoint_path)
 
-    # Construct network model
-    if 'constructor' in checkpoint_dict and checkpoint_dict['constructor'] is not None:
-        net_constr = checkpoint_dict['constructor']
-        if constructor_fun_name is not None:
-            net_constr.fun_name = constructor_fun_name
-        if constructor_module is not None:
-            net_constr.fun_module = constructor_module
-        # Legacy networks before refactoring
-        if net_constr.fun_module.startswith('dlframework.'):
-            net_constr.fun_module = net_constr.fun_module[len('dlframework.'):]
-        net_fun = getattr(importlib.import_module(net_constr.fun_module), net_constr.fun_name)
-        net_fun_args = list(inspect.signature(net_fun).parameters.keys())
-        for arg, val in kwargs.items():
-            if arg in net_fun_args:
-                net_constr.kwds[arg] = val
-            else:
-                print('WARNING: Keyword argument "{}" not found when loading network. It was ignored.'.format(arg))
-        net = net_constr.get()
-    else:
+    if (
+        'constructor' not in checkpoint_dict
+        or checkpoint_dict['constructor'] is None
+    ):
         raise RuntimeError('No constructor for the given network.')
 
+    net_constr = checkpoint_dict['constructor']
+    if constructor_fun_name is not None:
+        net_constr.fun_name = constructor_fun_name
+    if constructor_module is not None:
+        net_constr.fun_module = constructor_module
+    # Legacy networks before refactoring
+    if net_constr.fun_module.startswith('dlframework.'):
+        net_constr.fun_module = net_constr.fun_module[len('dlframework.'):]
+    net_fun = getattr(importlib.import_module(net_constr.fun_module), net_constr.fun_name)
+    net_fun_args = list(inspect.signature(net_fun).parameters.keys())
+    for arg, val in kwargs.items():
+        if arg in net_fun_args:
+            net_constr.kwds[arg] = val
+        else:
+            print(
+                f'WARNING: Keyword argument "{arg}" not found when loading network. It was ignored.'
+            )
+
+    net = net_constr.get()
     net.load_state_dict(checkpoint_dict['net'])
 
     net.constructor = checkpoint_dict['constructor']
@@ -137,14 +135,11 @@ def _setup_legacy_env():
     importlib.import_module('ltr.admin')
     sys.modules['dlframework.common.utils'] = sys.modules['ltr.admin']
     for m in ('model_constructor', 'stats', 'settings', 'local'):
-        importlib.import_module('ltr.admin.' + m)
-        sys.modules['dlframework.common.utils.' + m] = sys.modules['ltr.admin.' + m]
+        importlib.import_module(f'ltr.admin.{m}')
+        sys.modules[f'dlframework.common.utils.{m}'] = sys.modules[f'ltr.admin.{m}']
 
 
 def _cleanup_legacy_env():
-    del_modules = []
-    for m in sys.modules.keys():
-        if m.startswith('dlframework'):
-            del_modules.append(m)
+    del_modules = [m for m in sys.modules.keys() if m.startswith('dlframework')]
     for m in del_modules:
         del sys.modules[m]

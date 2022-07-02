@@ -90,7 +90,16 @@ class DiMPnet(nn.Module):
             layers = self.bb_regressor_layer + ['classification']
         if 'classification' not in layers:
             return self.feature_extractor(im, layers)
-        backbone_layers = sorted(list(set([l for l in layers + self.classification_layer if l != 'classification'])))
+        backbone_layers = sorted(
+            list(
+                {
+                    l
+                    for l in layers + self.classification_layer
+                    if l != 'classification'
+                }
+            )
+        )
+
         all_feat = self.feature_extractor(im, backbone_layers)
         all_feat['classification'] = self.extract_classification_feat(all_feat)
         return OrderedDict({l: all_feat[l] for l in layers})
@@ -137,10 +146,13 @@ def dimpnet18(filter_size=1, optim_iter=5, optim_init_step=1.0, optim_init_reg=0
     # Bounding box regressor
     bb_regressor = bbmodels.AtomIoUNet(pred_input_dim=iou_input_dim, pred_inter_dim=iou_inter_dim)
 
-    # DiMP network
-    net = DiMPnet(feature_extractor=backbone_net, classifier=classifier, bb_regressor=bb_regressor,
-                  classification_layer=classification_layer, bb_regressor_layer=['layer2', 'layer3'])
-    return net
+    return DiMPnet(
+        feature_extractor=backbone_net,
+        classifier=classifier,
+        bb_regressor=bb_regressor,
+        classification_layer=classification_layer,
+        bb_regressor_layer=['layer2', 'layer3'],
+    )
 
 
 @model_constructor
@@ -192,10 +204,13 @@ def dimpnet50(filter_size=1, optim_iter=5, optim_init_step=1.0, optim_init_reg=0
     # Bounding box regressor
     bb_regressor = bbmodels.AtomIoUNet(input_dim=(4*128,4*256), pred_input_dim=iou_input_dim, pred_inter_dim=iou_inter_dim)
 
-    # DiMP network
-    net = DiMPnet(feature_extractor=backbone_net, classifier=classifier, bb_regressor=bb_regressor,
-                  classification_layer=classification_layer, bb_regressor_layer=['layer2', 'layer3'])
-    return net
+    return DiMPnet(
+        feature_extractor=backbone_net,
+        classifier=classifier,
+        bb_regressor=bb_regressor,
+        classification_layer=classification_layer,
+        bb_regressor_layer=['layer2', 'layer3'],
+    )
 
 
 @model_constructor
@@ -246,10 +261,13 @@ def dimpnet50_simple(filter_size=1, optim_iter=5, optim_init_reg=0.01,
     bb_regressor = bbmodels.AtomIoUNet(input_dim=(4 * 128, 4 * 256), pred_input_dim=iou_input_dim,
                                        pred_inter_dim=iou_inter_dim)
 
-    # DiMP network
-    net = DiMPnet(feature_extractor=backbone_net, classifier=classifier, bb_regressor=bb_regressor,
-                  classification_layer=classification_layer, bb_regressor_layer=['layer2', 'layer3'])
-    return net
+    return DiMPnet(
+        feature_extractor=backbone_net,
+        classifier=classifier,
+        bb_regressor=bb_regressor,
+        classification_layer=classification_layer,
+        bb_regressor_layer=['layer2', 'layer3'],
+    )
 
 
 @model_constructor
@@ -286,10 +304,13 @@ def L2dimpnet18(filter_size=1, optim_iter=5, optim_init_step=1.0, optim_init_reg
     # Bounding box regressor
     bb_regressor = bbmodels.AtomIoUNet(pred_input_dim=iou_input_dim, pred_inter_dim=iou_inter_dim)
 
-    # DiMP network
-    net = DiMPnet(feature_extractor=backbone_net, classifier=classifier, bb_regressor=bb_regressor,
-                  classification_layer=classification_layer, bb_regressor_layer=['layer2', 'layer3'])
-    return net
+    return DiMPnet(
+        feature_extractor=backbone_net,
+        classifier=classifier,
+        bb_regressor=bb_regressor,
+        classification_layer=classification_layer,
+        bb_regressor_layer=['layer2', 'layer3'],
+    )
 
 
 @model_constructor
@@ -339,10 +360,13 @@ def klcedimpnet18(filter_size=1, optim_iter=5, optim_init_step=1.0, optim_init_r
     # Bounding box regressor
     bb_regressor = bbmodels.AtomIoUNet(pred_input_dim=iou_input_dim, pred_inter_dim=iou_inter_dim)
 
-    # DiMP network
-    net = DiMPnet(feature_extractor=backbone_net, classifier=classifier, bb_regressor=bb_regressor,
-                  classification_layer=classification_layer, bb_regressor_layer=['layer2', 'layer3'])
-    return net
+    return DiMPnet(
+        feature_extractor=backbone_net,
+        classifier=classifier,
+        bb_regressor=bb_regressor,
+        classification_layer=classification_layer,
+        bb_regressor_layer=['layer2', 'layer3'],
+    )
 
 
 @model_constructor
@@ -390,7 +414,10 @@ def klcedimpnet50(filter_size=1, optim_iter=5, optim_init_step=1.0, optim_init_r
     # Bounding box regressor
     bb_regressor = bbmodels.AtomIoUNet(input_dim=(4*128,4*256), pred_input_dim=iou_input_dim, pred_inter_dim=iou_inter_dim)
 
-    # DiMP network
-    net = DiMPnet(feature_extractor=backbone_net, classifier=classifier, bb_regressor=bb_regressor,
-                  classification_layer=classification_layer, bb_regressor_layer=['layer2', 'layer3'])
-    return net
+    return DiMPnet(
+        feature_extractor=backbone_net,
+        classifier=classifier,
+        bb_regressor=bb_regressor,
+        classification_layer=classification_layer,
+        bb_regressor_layer=['layer2', 'layer3'],
+    )
